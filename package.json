@@ -1,0 +1,19 @@
+{
+  "name": "pixi-legacy-correct-filters.js",
+  "version": "1.0",
+  "description": "PIXI legacy js correct filters",
+  "homepage": "https://github.com/martyniukigor/pixi-legacy-correct-filters.js.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martyniukigor/pixi-legacy-correct-filters.js.git"
+  },
+  "author": "Martiniti <martinukigor@gmail.com>",
+  "license": "MIT",
+  "keywords": [
+    "pixijs",
+    "legacy",
+    "filters"
+  ],
+  "main": "pixi-legacy.js",
+  "module": "pixi-legacy.js"
+}
