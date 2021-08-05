@@ -1,4 +1,4 @@
-import { Polygon, SHAPES } from '@pixi/math';
+import { SHAPES } from '@pixi/math';
 
 import type { CanvasRenderer } from '../CanvasRenderer';
 import type { Graphics } from '@pixi/graphics';
@@ -15,20 +15,23 @@ import type { Container } from '@pixi/display';
  */
 export class CanvasMaskManager
 {
-    /** A reference to the current renderer */
     private renderer: CanvasRenderer;
-    private _foundShapes: Array<Graphics> = [];
+    private _foundShapes: Array<Graphics>;
 
-    /** @param renderer - A reference to the current renderer */
+    /**
+     * @param {PIXI.CanvasRenderer} renderer - The canvas renderer.
+     */
     constructor(renderer: CanvasRenderer)
     {
         this.renderer = renderer;
+
+        this._foundShapes = [];
     }
 
     /**
      * This method adds it to the current stack of masks.
      *
-     * @param maskData - the maskData that will be pushed
+     * @param {PIXI.MaskData | PIXI.Graphics} maskData - the maskData that will be pushed
      */
     pushMask(maskData: MaskData | Graphics): void
     {
@@ -67,8 +70,8 @@ export class CanvasMaskManager
     /**
      * Renders all PIXI.Graphics shapes in a subtree.
      *
-     * @param container - container to scan.
-     * @param out - where to put found shapes
+     * @param {PIXI.Container} container - container to scan.
+     * @param {PIXI.Graphics[]} out - where to put found shapes
      */
     recursiveFindShapes(container: Container, out: Array<Graphics>): void
     {
@@ -91,7 +94,7 @@ export class CanvasMaskManager
     /**
      * Renders a PIXI.Graphics shape.
      *
-     * @param graphics - The object to render.
+     * @param {PIXI.Graphics} graphics - The object to render.
      */
     renderGraphicsShape(graphics: Graphics): void
     {
@@ -113,12 +116,7 @@ export class CanvasMaskManager
 
             if (shape.type === SHAPES.POLY)
             {
-                let points = shape.points;
-                const holes = data.holes;
-                let outerArea;
-                let innerArea;
-                let px;
-                let py;
+                const points = shape.points;
 
                 context.moveTo(points[0], points[1]);
 
@@ -126,60 +124,7 @@ export class CanvasMaskManager
                 {
                     context.lineTo(points[j * 2], points[(j * 2) + 1]);
                 }
-                if (holes.length > 0)
-                {
-                    outerArea = 0;
-                    px = points[0];
-                    py = points[1];
-                    for (let j = 2; j + 2 < points.length; j += 2)
-                    {
-                        outerArea += ((points[j] - px) * (points[j + 3] - py))
-                            - ((points[j + 2] - px) * (points[j + 1] - py));
-                    }
 
-                    for (let k = 0; k < holes.length; k++)
-                    {
-                        points = (holes[k].shape as Polygon).points;
-
-                        if (!points)
-                        {
-                            continue;
-                        }
-
-                        innerArea = 0;
-                        px = points[0];
-                        py = points[1];
-                        for (let j = 2; j + 2 < points.length; j += 2)
-                        {
-                            innerArea += ((points[j] - px) * (points[j + 3] - py))
-                                - ((points[j + 2] - px) * (points[j + 1] - py));
-                        }
-
-                        if (innerArea * outerArea < 0)
-                        {
-                            context.moveTo(points[0], points[1]);
-
-                            for (let j = 2; j < points.length; j += 2)
-                            {
-                                context.lineTo(points[j], points[j + 1]);
-                            }
-                        }
-                        else
-                        {
-                            context.moveTo(points[points.length - 2], points[points.length - 1]);
-
-                            for (let j = points.length - 4; j >= 0; j -= 2)
-                            {
-                                context.lineTo(points[j], points[j + 1]);
-                            }
-                        }
-
-                        if ((holes[k].shape as Polygon).closeStroke)
-                        {
-                            context.closePath();
-                        }
-                    }
-                }
                 // if the first and last point are the same close the path - much neater :)
                 if (points[0] === points[points.length - 2] && points[1] === points[points.length - 1])
                 {
@@ -230,7 +175,7 @@ export class CanvasMaskManager
                 const height = shape.height;
                 let radius = shape.radius;
 
-                const maxRadius = Math.min(width, height) / 2;
+                const maxRadius = Math.min(width, height) / 2 | 0;
 
                 radius = radius > maxRadius ? maxRadius : radius;
 
@@ -251,7 +196,7 @@ export class CanvasMaskManager
     /**
      * Restores the current drawing context to the state it was before the mask was applied.
      *
-     * @param renderer - The renderer context to use.
+     * @param {PIXI.CanvasRenderer} renderer - The renderer context to use.
      */
     popMask(renderer: CanvasRenderer): void
     {
@@ -259,7 +204,10 @@ export class CanvasMaskManager
         renderer.invalidateBlendMode();
     }
 
-    /** Destroys this canvas mask manager. */
+    /**
+     * Destroys this canvas mask manager.
+     *
+     */
     public destroy(): void
     {
         /* empty */

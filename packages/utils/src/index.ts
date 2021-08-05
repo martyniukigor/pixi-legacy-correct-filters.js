@@ -24,7 +24,7 @@
  *
  * @memberof PIXI.utils
  * @name isMobile
- * @member {Object}
+ * @type {Object}
  * @property {boolean} any - `true` if current platform is tablet or phone device
  * @property {boolean} tablet - `true` if current platform large-screen tablet device
  * @property {boolean} phone - `true` if current platform small-screen phone device
@@ -57,6 +57,7 @@ import EventEmitter from 'eventemitter3';
  *
  * @memberof PIXI.utils
  * @class EventEmitter
+ * @type {EventEmitter}
  */
 export { EventEmitter };
 
@@ -66,7 +67,7 @@ export { EventEmitter };
  * @see {@link https://github.com/mapbox/earcut}
  *
  * @memberof PIXI.utils
- * @method earcut
+ * @function earcut
  * @param {number[]} vertices - A flat array of vertex coordinates
  * @param {number[]} [holes] - An array of hole indices
  * @param {number} [dimensions=2] - The number of coordinates per vertex in the input array
@@ -81,9 +82,9 @@ export { default as earcut } from 'earcut';
  *
  * @memberof PIXI.utils
  * @name url
- * @member {object}
+ * @type {object}
  */
-export * from './url';
+export { default as url } from 'url';
 
 import './settings';
 

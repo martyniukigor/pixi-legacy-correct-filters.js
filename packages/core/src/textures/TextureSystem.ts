@@ -1,44 +1,37 @@
-import { mapTypeAndFormatToInternalFormat } from './utils/mapTypeAndFormatToInternalFormat';
+import { System } from '../System';
 import { BaseTexture } from './BaseTexture';
 import { GLTexture } from './GLTexture';
 import { removeItems } from '@pixi/utils';
-import { MIPMAP_MODES, WRAP_MODES, SCALE_MODES, TYPES, SAMPLER_TYPES } from '@pixi/constants';
+import { MIPMAP_MODES, WRAP_MODES, SCALE_MODES, TYPES } from '@pixi/constants';
 
-import type { ISystem } from '../ISystem';
 import type { Texture } from './Texture';
 import type { IRenderingContext } from '../IRenderingContext';
 import type { Renderer } from '../Renderer';
-
 /**
  * System plugin to the renderer to manage textures.
  *
  * @class
  * @extends PIXI.System
- * @memberof PIXI
+ * @memberof PIXI.systems
  */
-
-export class TextureSystem implements ISystem
+export class TextureSystem extends System
 {
     public boundTextures: BaseTexture[];
     public managedTextures: Array<BaseTexture>;
-    /** Whether glTexture with int/uint sampler type was uploaded. */
-    protected hasIntegerTextures: boolean;
     protected CONTEXT_UID: number;
     protected gl: IRenderingContext;
-    protected internalFormats: { [type: number]: { [format: number]: number } };
     protected webGLVersion: number;
     protected unknownTexture: BaseTexture;
     protected _unknownBoundTextures: boolean;
     currentLocation: number;
     emptyTextures: {[key: number]: GLTexture};
-    private renderer: Renderer;
 
     /**
      * @param {PIXI.Renderer} renderer - The renderer this System works for.
      */
     constructor(renderer: Renderer)
     {
-        this.renderer = renderer;
+        super(renderer);
 
         // TODO set to max textures...
         /**
@@ -47,7 +40,6 @@ export class TextureSystem implements ISystem
          * @readonly
          */
         this.boundTextures = [];
-
         /**
          * Current location
          * @member {number}
@@ -75,8 +67,6 @@ export class TextureSystem implements ISystem
          * @readonly
          */
         this.unknownTexture = new BaseTexture();
-
-        this.hasIntegerTextures = false;
     }
 
     /**
@@ -89,8 +79,6 @@ export class TextureSystem implements ISystem
         this.CONTEXT_UID = this.renderer.CONTEXT_UID;
 
         this.webGLVersion = this.renderer.context.webGLVersion;
-
-        this.internalFormats = mapTypeAndFormatToInternalFormat(gl);
 
         const maxTextures = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
 
@@ -140,38 +128,45 @@ export class TextureSystem implements ISystem
     {
         const { gl } = this;
 
-        texture = texture?.castToBaseTexture();
-
-        // cannot bind partial texture
-        // TODO: report a warning
-        if (texture && texture.valid && !texture.parentTextureArray)
+        if (texture)
         {
-            texture.touched = this.renderer.textureGC.count;
+            texture = texture.castToBaseTexture();
 
-            const glTexture = texture._glTextures[this.CONTEXT_UID] || this.initTexture(texture);
-
-            if (this.boundTextures[location] !== texture)
+            if (texture.parentTextureArray)
             {
-                if (this.currentLocation !== location)
-                {
-                    this.currentLocation = location;
-                    gl.activeTexture(gl.TEXTURE0 + location);
-                }
-
-                gl.bindTexture(texture.target, glTexture.texture);
+                // cannot bind partial texture
+                // TODO: report a warning
+                return;
             }
 
-            if (glTexture.dirtyId !== texture.dirtyId)
+            if (texture.valid)
             {
-                if (this.currentLocation !== location)
-                {
-                    this.currentLocation = location;
-                    gl.activeTexture(gl.TEXTURE0 + location);
-                }
-                this.updateTexture(texture);
-            }
+                texture.touched = this.renderer.textureGC.count;
 
-            this.boundTextures[location] = texture;
+                const glTexture = texture._glTextures[this.CONTEXT_UID] || this.initTexture(texture);
+
+                if (this.boundTextures[location] !== texture)
+                {
+                    if (this.currentLocation !== location)
+                    {
+                        this.currentLocation = location;
+                        gl.activeTexture(gl.TEXTURE0 + location);
+                    }
+                    gl.bindTexture(texture.target, glTexture.texture);
+                }
+
+                if (glTexture.dirtyId !== texture.dirtyId)
+                {
+                    if (this.currentLocation !== location)
+                    {
+                        this.currentLocation = location;
+                        gl.activeTexture(gl.TEXTURE0 + location);
+                    }
+                    this.updateTexture(texture);
+                }
+
+                this.boundTextures[location] = texture;
+            }
         }
         else
         {
@@ -194,7 +189,6 @@ export class TextureSystem implements ISystem
     reset(): void
     {
         this._unknownBoundTextures = true;
-        this.hasIntegerTextures = false;
         this.currentLocation = -1;
 
         for (let i = 0; i < this.boundTextures.length; i++)
@@ -242,37 +236,6 @@ export class TextureSystem implements ISystem
     }
 
     /**
-     * Ensures that current boundTextures all have FLOAT sampler type,
-     * see {@link PIXI.SAMPLER_TYPES} for explanation.
-     *
-     * @param maxTextures - number of locations to check
-     */
-    ensureSamplerType(maxTextures: number): void
-    {
-        const { boundTextures, hasIntegerTextures, CONTEXT_UID } = this;
-
-        if (!hasIntegerTextures)
-        {
-            return;
-        }
-
-        for (let i = maxTextures - 1; i >= 0; --i)
-        {
-            const tex = boundTextures[i];
-
-            if (tex)
-            {
-                const glTexture = tex._glTextures[CONTEXT_UID];
-
-                if (glTexture.samplerType !== SAMPLER_TYPES.FLOAT)
-                {
-                    this.renderer.texture.unbind(tex);
-                }
-            }
-        }
-    }
-
-    /**
      * Initialize a texture
      *
      * @private
@@ -295,17 +258,29 @@ export class TextureSystem implements ISystem
 
     initTextureType(texture: BaseTexture, glTexture: GLTexture): void
     {
-        glTexture.internalFormat = this.internalFormats[texture.type]?.[texture.format] ?? texture.format;
-
-        if (this.webGLVersion === 2 && texture.type === TYPES.HALF_FLOAT)
+        glTexture.internalFormat = texture.format;
+        glTexture.type = texture.type;
+        if (this.webGLVersion !== 2)
         {
-            // TYPES.HALF_FLOAT is WebGL1 HALF_FLOAT_OES
-            // we have to convert it to WebGL HALF_FLOAT
-            glTexture.type = this.gl.HALF_FLOAT;
+            return;
         }
-        else
+        const gl = this.renderer.gl;
+
+        if (texture.type === gl.FLOAT
+            && texture.format === gl.RGBA)
         {
-            glTexture.type = texture.type;
+            glTexture.internalFormat = gl.RGBA32F;
+        }
+        // that's WebGL1 HALF_FLOAT_OES
+        // we have to convert it to WebGL HALF_FLOAT
+        if (texture.type === TYPES.HALF_FLOAT)
+        {
+            glTexture.type = gl.HALF_FLOAT;
+        }
+        if (glTexture.type === gl.HALF_FLOAT
+            && texture.format === gl.RGBA)
+        {
+            glTexture.internalFormat = gl.RGBA16F;
         }
     }
 
@@ -331,10 +306,6 @@ export class TextureSystem implements ISystem
         if (texture.resource && texture.resource.upload(renderer, texture, glTexture))
         {
             // texture is uploaded, dont do anything!
-            if (glTexture.samplerType !== SAMPLER_TYPES.FLOAT)
-            {
-                this.hasIntegerTextures = true;
-            }
         }
         else
         {
@@ -459,7 +430,7 @@ export class TextureSystem implements ISystem
     {
         const gl = this.gl;
 
-        if (glTexture.mipmap && texture.mipmap !== MIPMAP_MODES.ON_MANUAL)
+        if (glTexture.mipmap)
         {
             gl.generateMipmap(texture.target);
         }
@@ -488,13 +459,5 @@ export class TextureSystem implements ISystem
         }
 
         gl.texParameteri(texture.target, gl.TEXTURE_MAG_FILTER, texture.scaleMode === SCALE_MODES.LINEAR ? gl.LINEAR : gl.NEAREST);
-    }
-
-    /**
-     * @ignore
-     */
-    destroy(): void
-    {
-        this.renderer = null;
     }
 }

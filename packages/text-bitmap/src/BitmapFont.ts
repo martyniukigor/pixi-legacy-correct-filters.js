@@ -84,7 +84,7 @@ export class BitmapFont
      * @property {number} textureWidth=512
      * @property {number} textureHeight=512
      * @property {number} padding=4
-     * @property {string|string[]|string[][]} chars = PIXI.BitmapFont.ALPHANUMERIC
+     * @property {string|string[]|string[][]} chars=PIXI.BitmapFont.ALPHANUMERIC
      */
     public static readonly defaultOptions: IBitmapFontOptions = {
         resolution: 1,
@@ -112,7 +112,7 @@ export class BitmapFont
     /**
      * @param {PIXI.BitmapFontData} data
      * @param {PIXI.Texture[]|Object.<string, PIXI.Texture>} textures
-     * @param {boolean} ownsTextures - Setting to `true` will destroy page textures
+     * @param {boolean} [ownsTextures] - Setting to `true` will destroy page textures
      *        when the font is uninstalled.
      */
     constructor(data: BitmapFontData, textures: Texture[]|Dict<Texture>, ownsTextures?: boolean)
@@ -260,7 +260,7 @@ export class BitmapFont
      *        characters map that could be provided as xml or raw string.
      * @param {Object.<string, PIXI.Texture>|PIXI.Texture|PIXI.Texture[]}
      *        textures - List of textures for each page.
-     * @param managedTexture - Set to `true` to destroy page textures
+     * @param {boolean} managedTexture - Set to `true` to destroy page textures
      *        when the font is uninstalled. By default fonts created with
      *        `BitmapFont.from` or from the `BitmapFontLoader` are `true`.
      * @return {PIXI.BitmapFont} Result font object with font, size, lineHeight
@@ -307,7 +307,7 @@ export class BitmapFont
      * Remove bitmap font by name.
      *
      * @static
-     * @param name - Name of the font to uninstall.
+     * @param {string} name - Name of the font to uninstall.
      */
     public static uninstall(name: string): void
     {
@@ -397,11 +397,11 @@ export class BitmapFont
         let positionX = 0;
         let positionY = 0;
 
-        let canvas: HTMLCanvasElement;
-        let context: CanvasRenderingContext2D;
-        let baseTexture: BaseTexture;
+        let canvas;
+        let context;
+        let baseTexture;
         let maxCharHeight = 0;
-        const baseTextures: BaseTexture[] = [];
+        const baseTextures = [];
         const textures: Texture[] = [];
 
         for (let i = 0; i < charsList.length; i++)
@@ -493,31 +493,6 @@ export class BitmapFont
             positionX = Math.ceil(positionX);
         }
 
-        // Brute-force kerning info, this can be expensive b/c it's an O(n²),
-        // but we're using measureText which is native and fast.
-        for (let i = 0, len = charsList.length; i < len; i++)
-        {
-            const first = charsList[i];
-
-            for (let j = 0; j < len; j++)
-            {
-                const second = charsList[j];
-                const c1 = context.measureText(first).width;
-                const c2 = context.measureText(second).width;
-                const total = context.measureText(first + second).width;
-                const amount = total - (c1 + c2);
-
-                if (amount)
-                {
-                    fontData.kerning.push({
-                        first: first.charCodeAt(0),
-                        second: second.charCodeAt(0),
-                        amount,
-                    });
-                }
-            }
-        }
-
         const font = new BitmapFont(fontData, textures, true);
 
         // Make it easier to replace a font
@@ -541,3 +516,4 @@ export class BitmapFont
  * @property {number} [textureWidth=512] - the width of the texture atlas
  * @property {number} [textureHeight=512] - the height of the texture atlas
  */
+

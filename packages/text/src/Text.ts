@@ -23,7 +23,7 @@ const defaultDestroyOptions: IDestroyOptions = {
  *
  * The text is created using the [Canvas API](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API).
  *
- * The primary advantage of this class over BitmapText is that you have great control over the style of the text,
+ * The primary advantage of this class over BitmapText is that you have great control over the style of the next,
  * which you can change at runtime.
  *
  * The primary disadvantages is that each piece of text has it's own texture, which can use more memory.
@@ -45,19 +45,6 @@ const defaultDestroyOptions: IDestroyOptions = {
  */
 export class Text extends Sprite
 {
-    /**
-     * New behavior for `lineHeight` that's meant to mimic HTML text. A value of `true` will
-     * make sure the first baseline is offset by the `lineHeight` value if it is greater than `fontSize`.
-     * A value of `false` will use the legacy behavior and not change the baseline of the first line.
-     * In the next major release, we'll enable this by default.
-     *
-     * @static
-     * @memberof PIXI.Text
-     * @member {boolean} nextLineHeightBehavior
-     * @default false
-     */
-    public static nextLineHeightBehavior = false;
-
     public canvas: HTMLCanvasElement;
     public context: CanvasRenderingContext2D;
     public localStyleID: number;
@@ -76,7 +63,7 @@ export class Text extends Sprite
      * @param {object|PIXI.TextStyle} [style] - The style parameters
      * @param {HTMLCanvasElement} [canvas] - The canvas element for drawing text
      */
-    constructor(text: string, style?: Partial<ITextStyle>|TextStyle, canvas?: HTMLCanvasElement)
+    constructor(text: string, style: Partial<ITextStyle>|TextStyle, canvas: HTMLCanvasElement)
     {
         let ownCanvas = false;
 
@@ -124,7 +111,7 @@ export class Text extends Sprite
          * The resolution / device pixel ratio of the canvas.
          * This is set to automatically match the renderer resolution by default, but can be overridden by setting manually.
          * @member {number}
-         * @default PIXI.settings.RESOLUTION
+         * @default 1
          */
         this._resolution = settings.RESOLUTION;
         this._autoResolution = true;
@@ -202,8 +189,8 @@ export class Text extends Sprite
         const maxLineWidth = measured.maxLineWidth;
         const fontProperties = measured.fontProperties;
 
-        this.canvas.width = Math.ceil(Math.ceil((Math.max(1, width) + (style.padding * 2))) * this._resolution);
-        this.canvas.height = Math.ceil(Math.ceil((Math.max(1, height) + (style.padding * 2))) * this._resolution);
+        this.canvas.width = Math.ceil((Math.max(1, width) + (style.padding * 2)) * this._resolution);
+        this.canvas.height = Math.ceil((Math.max(1, height) + (style.padding * 2)) * this._resolution);
 
         context.scale(this._resolution, this._resolution);
 
@@ -270,19 +257,11 @@ export class Text extends Sprite
                 context.shadowOffsetY = 0;
             }
 
-            let linePositionYShift = (lineHeight - fontProperties.fontSize) / 2;
-
-            if (!Text.nextLineHeightBehavior || lineHeight - fontProperties.fontSize < 0)
-            {
-                linePositionYShift = 0;
-            }
-
             // draw lines line by line
             for (let i = 0; i < lines.length; i++)
             {
                 linePositionX = style.strokeThickness / 2;
-                linePositionY = ((style.strokeThickness / 2) + (i * lineHeight)) + fontProperties.ascent
-                    + linePositionYShift;
+                linePositionY = ((style.strokeThickness / 2) + (i * lineHeight)) + fontProperties.ascent;
 
                 if (style.align === 'right')
                 {
@@ -403,8 +382,8 @@ export class Text extends Sprite
         const padding = style.trim ? 0 : style.padding;
         const baseTexture = texture.baseTexture;
 
-        texture.trim.width = texture._frame.width = canvas.width / this._resolution;
-        texture.trim.height = texture._frame.height = canvas.height / this._resolution;
+        texture.trim.width = texture._frame.width = Math.ceil(canvas.width / this._resolution);
+        texture.trim.height = texture._frame.height = Math.ceil(canvas.height / this._resolution);
         texture.trim.x = -padding;
         texture.trim.y = -padding;
 
@@ -415,8 +394,6 @@ export class Text extends Sprite
         this._onTextureUpdate();
 
         baseTexture.setRealSize(canvas.width, canvas.height, this._resolution);
-
-        texture.updateUvs();
 
         // Recursively updates transform of all objects from the root to this one
         this._recursivePostUpdateTransform();
@@ -503,8 +480,8 @@ export class Text extends Sprite
         // should also take padding into account, padding can offset the gradient
         const padding = style.padding || 0;
 
-        const width = (this.canvas.width / this._resolution) - dropShadowCorrection - (padding * 2);
-        const height = (this.canvas.height / this._resolution) - dropShadowCorrection - (padding * 2);
+        const width = Math.ceil(this.canvas.width / this._resolution) - dropShadowCorrection - (padding * 2);
+        const height = Math.ceil(this.canvas.height / this._resolution) - dropShadowCorrection - (padding * 2);
 
         // make a copy of the style settings, so we can manipulate them later
         const fill = fillStyle.slice();
@@ -537,33 +514,21 @@ export class Text extends Sprite
             // we need to repeat the gradient so that each individual line of text has the same vertical gradient effect
             // ['#FF0000', '#00FF00', '#0000FF'] over 2 lines would create stops at 0.125, 0.25, 0.375, 0.625, 0.75, 0.875
 
+            // There's potential for floating point precision issues at the seams between gradient repeats.
+            // The loop below generates the stops in order, so track the last generated one to prevent
+            // floating point precision from making us go the teeniest bit backwards, resulting in
+            // the first and last colors getting swapped.
+            let lastIterationStop = 0;
+
             // Actual height of the text itself, not counting spacing for lineHeight/leading/dropShadow etc
             const textHeight = metrics.fontProperties.fontSize + style.strokeThickness;
 
+            // textHeight, but as a 0-1 size in global gradient stop space
+            const gradStopLineHeight = textHeight / height;
+
             for (let i = 0; i < lines.length; i++)
             {
-                const lastLineBottom = (metrics.lineHeight * (i - 1)) + textHeight;
                 const thisLineTop = metrics.lineHeight * i;
-                let thisLineGradientStart = thisLineTop;
-
-                // Handle case where last & this line overlap
-                if (i > 0 && lastLineBottom > thisLineTop)
-                {
-                    thisLineGradientStart = (thisLineTop + lastLineBottom) / 2;
-                }
-
-                const thisLineBottom = thisLineTop + textHeight;
-                const nextLineTop = metrics.lineHeight * (i + 1);
-                let thisLineGradientEnd = thisLineBottom;
-
-                // Handle case where this & next line overlap
-                if (i + 1 < lines.length && nextLineTop < thisLineBottom)
-                {
-                    thisLineGradientEnd = (thisLineBottom + nextLineTop) / 2;
-                }
-
-                // textHeight, but as a 0-1 size in global gradient stop space
-                const gradStopLineHeight = (thisLineGradientEnd - thisLineGradientStart) / height;
 
                 for (let j = 0; j < fill.length; j++)
                 {
@@ -579,12 +544,14 @@ export class Text extends Sprite
                         lineStop = j / fill.length;
                     }
 
-                    let globalStop = Math.min(1, Math.max(0,
-                        (thisLineGradientStart / height) + (lineStop * gradStopLineHeight)));
+                    const globalStop = (thisLineTop / height) + (lineStop * gradStopLineHeight);
 
-                    // There's potential for floating point precision issues at the seams between gradient repeats.
-                    globalStop = Number(globalStop.toFixed(5));
-                    gradient.addColorStop(globalStop, fill[j]);
+                    // Prevent color stop generation going backwards from floating point imprecision
+                    let clampedStop = Math.max(lastIterationStop, globalStop);
+
+                    clampedStop = Math.min(clampedStop, 1); // Cap at 1 as well for safety's sake to avoid a possible throw.
+                    gradient.addColorStop(clampedStop, fill[j]);
+                    lastIterationStop = clampedStop;
                 }
             }
         }
@@ -630,7 +597,7 @@ export class Text extends Sprite
      * @param {boolean} [options.texture=true] - Should it destroy the current texture of the sprite as well
      * @param {boolean} [options.baseTexture=true] - Should it destroy the base texture of the sprite as well
      */
-    public destroy(options?: IDestroyOptions|boolean): void
+    public destroy(options: IDestroyOptions|boolean): void
     {
         if (typeof options === 'boolean')
         {

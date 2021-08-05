@@ -8,27 +8,31 @@ import { settings } from '@pixi/settings';
  */
 export class CanvasRenderTarget
 {
-    /** The Canvas object that belongs to this CanvasRenderTarget. */
     public canvas: HTMLCanvasElement;
 
-    /** A CanvasRenderingContext2D object representing a two-dimensional rendering context. */
     public context: CanvasRenderingContext2D;
 
-    /**
-     * The resolution / device pixel ratio of the canvas
-     * @default 1
-     */
     public resolution: number;
 
     /**
-     * @param width - the width for the newly created canvas
-     * @param height - the height for the newly created canvas
-     * @param {number} [resolution=PIXI.settings.RESOLUTION] - The resolution / device pixel ratio of the canvas
+     * @param {number} width - the width for the newly created canvas
+     * @param {number} height - the height for the newly created canvas
+     * @param {number} [resolution=1] - The resolution / device pixel ratio of the canvas
      */
-    constructor(width: number, height: number, resolution?: number)
+    constructor(width: number, height: number, resolution: number)
     {
+        /**
+         * The Canvas object that belongs to this CanvasRenderTarget.
+         *
+         * @member {HTMLCanvasElement}
+         */
         this.canvas = document.createElement('canvas');
 
+        /**
+         * A CanvasRenderingContext2D object representing a two-dimensional rendering context.
+         *
+         * @member {CanvasRenderingContext2D}
+         */
         this.context = this.canvas.getContext('2d');
 
         this.resolution = resolution || settings.RESOLUTION;
@@ -50,16 +54,19 @@ export class CanvasRenderTarget
     /**
      * Resizes the canvas to the specified width and height.
      *
-     * @param desiredWidth - the desired width of the canvas
-     * @param desiredHeight - the desired height of the canvas
+     * @param {number} width - the new width of the canvas
+     * @param {number} height - the new height of the canvas
      */
-    resize(desiredWidth: number, desiredHeight: number): void
+    resize(width: number, height: number): void
     {
-        this.canvas.width = Math.round(desiredWidth * this.resolution);
-        this.canvas.height = Math.round(desiredHeight * this.resolution);
+        this.canvas.width = width * this.resolution;
+        this.canvas.height = height * this.resolution;
     }
 
-    /** Destroys this canvas. */
+    /**
+     * Destroys this canvas.
+     *
+     */
     destroy(): void
     {
         this.context = null;
@@ -78,7 +85,7 @@ export class CanvasRenderTarget
 
     set width(val: number)
     {
-        this.canvas.width = Math.round(val);
+        this.canvas.width = val;
     }
 
     /**
@@ -93,6 +100,6 @@ export class CanvasRenderTarget
 
     set height(val: number)
     {
-        this.canvas.height = Math.round(val);
+        this.canvas.height = val;
     }
 }

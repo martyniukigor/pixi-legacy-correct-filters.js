@@ -1,6 +1,5 @@
 import { BaseTexture } from '../textures/BaseTexture';
 import { Framebuffer } from '../framebuffer/Framebuffer';
-import { MIPMAP_MODES, MSAA_QUALITY } from '@pixi/constants';
 
 import type { IBaseTextureOptions } from '../textures/BaseTexture';
 import type { MaskData } from '../mask/MaskData';
@@ -27,7 +26,7 @@ export interface BaseRenderTexture extends GlobalMixins.BaseRenderTexture, BaseT
  * sprite.anchor.x = 0.5;
  * sprite.anchor.y = 0.5;
  *
- * renderer.render(sprite, {renderTexture});
+ * renderer.render(sprite, renderTexture);
  * ```
  *
  * The Sprite in this case will be rendered using its local transform. To render this sprite at 0,0
@@ -40,7 +39,7 @@ export interface BaseRenderTexture extends GlobalMixins.BaseRenderTexture, BaseT
  * let baseRenderTexture = new PIXI.BaseRenderTexture({ width: 100, height: 100 });
  * let renderTexture = new PIXI.RenderTexture(baseRenderTexture);
  *
- * renderer.render(sprite, {renderTexture});  // Renders to center of RenderTexture
+ * renderer.render(sprite, renderTexture);  // Renders to center of RenderTexture
  * ```
  *
  * @class
@@ -53,18 +52,14 @@ export class BaseRenderTexture extends BaseTexture
     public framebuffer: Framebuffer;
     maskStack: Array<MaskData>;
     filterStack: Array<any>;
-
     /**
      * @param {object} [options]
      * @param {number} [options.width=100] - The width of the base render texture.
      * @param {number} [options.height=100] - The height of the base render texture.
-     * @param {PIXI.SCALE_MODES} [options.scaleMode=PIXI.settings.SCALE_MODE] - See {@link PIXI.SCALE_MODES}
-     *   for possible values.
-     * @param {number} [options.resolution=PIXI.settings.RESOLUTION] - The resolution / device pixel ratio
-     *   of the texture being generated.
-     * @param {PIXI.MSAA_QUALITY} [options.multisample=PIXI.MSAA_QUALITY.NONE] - The number of samples of the frame buffer.
+     * @param {PIXI.SCALE_MODES} [options.scaleMode] - See {@link PIXI.SCALE_MODES} for possible values.
+     * @param {number} [options.resolution=1] - The resolution / device pixel ratio of the texture being generated.
      */
-    constructor(options?: IBaseTextureOptions)
+    constructor(options: IBaseTextureOptions)
     {
         if (typeof options === 'number')
         {
@@ -79,21 +74,20 @@ export class BaseRenderTexture extends BaseTexture
             /* eslint-enable prefer-rest-params */
         }
 
-        options.width = options.width || 100;
-        options.height = options.height || 100;
-        options.multisample = options.multisample !== undefined ? options.multisample : MSAA_QUALITY.NONE;
-
         super(null, options);
 
+        const { width, height } = options || {};
+
         // Set defaults
-        this.mipmap = MIPMAP_MODES.OFF;
+        this.mipmap = 0;
+        this.width = Math.ceil(width) || 100;
+        this.height = Math.ceil(height) || 100;
         this.valid = true;
 
         this.clearColor = [0, 0, 0, 0];
 
-        this.framebuffer = new Framebuffer(this.realWidth, this.realHeight)
+        this.framebuffer = new Framebuffer(this.width * this.resolution, this.height * this.resolution)
             .addColorTexture(0, this);
-        this.framebuffer.multisample = options.multisample;
 
         // TODO - could this be added the systems?
 
@@ -115,13 +109,14 @@ export class BaseRenderTexture extends BaseTexture
     /**
      * Resizes the BaseRenderTexture.
      *
-     * @param {number} desiredWidth - The desired width to resize to.
-     * @param {number} desiredHeight - The desired height to resize to.
+     * @param {number} width - The width to resize to.
+     * @param {number} height - The height to resize to.
      */
-    resize(desiredWidth: number, desiredHeight: number): void
+    resize(width: number, height: number): void
     {
-        this.framebuffer.resize(desiredWidth * this.resolution, desiredHeight * this.resolution);
-        this.setRealSize(this.framebuffer.width, this.framebuffer.height);
+        width = Math.ceil(width);
+        height = Math.ceil(height);
+        this.framebuffer.resize(width * this.resolution, height * this.resolution);
     }
 
     /**

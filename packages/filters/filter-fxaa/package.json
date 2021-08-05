@@ -1,9 +1,9 @@
 {
   "name": "@pixi/filter-fxaa",
-  "version": "6.1.0",
-  "main": "dist/cjs/filter-fxaa.js",
-  "module": "dist/esm/filter-fxaa.js",
-  "bundle": "dist/browser/filter-fxaa.js",
+  "version": "5.3.10",
+  "main": "lib/filter-fxaa.js",
+  "module": "lib/filter-fxaa.es.js",
+  "bundle": "dist/filter-fxaa.js",
   "namespace": "PIXI.filters",
   "description": "Filter for fast approximate anti-aliasing",
   "author": "Mat Groves",
@@ -22,10 +22,9 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ],
-  "peerDependencies": {
-    "@pixi/core": "6.1.0"
+  "dependencies": {
+    "@pixi/core": "5.3.10"
   }
 }

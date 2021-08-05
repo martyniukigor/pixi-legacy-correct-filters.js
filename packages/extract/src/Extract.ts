@@ -39,6 +39,14 @@ export class Extract implements IRendererPlugin
     constructor(renderer: Renderer)
     {
         this.renderer = renderer;
+        /**
+         * Collection of methods for extracting data (image, pixels, etc.) from a display object or render texture
+         *
+         * @member {PIXI.Extract} extract
+         * @memberof PIXI.Renderer#
+         * @see PIXI.Extract
+         */
+        renderer.extract = this;
     }
 
     /**
@@ -255,6 +263,7 @@ export class Extract implements IRendererPlugin
      */
     public destroy(): void
     {
+        this.renderer.extract = null;
         this.renderer = null;
     }
 
@@ -262,8 +271,8 @@ export class Extract implements IRendererPlugin
      * Takes premultiplied pixel data and produces regular pixel data
      *
      * @private
-     * @param {number[] | Uint8Array | Uint8ClampedArray} pixels - array of pixel data
-     * @param {number[] | Uint8Array | Uint8ClampedArray} out - output array
+     * @param pixels {number[] | Uint8Array | Uint8ClampedArray} array of pixel data
+     * @param out {number[] | Uint8Array | Uint8ClampedArray} output array
      */
     static arrayPostDivide(
         pixels: number[] | Uint8Array | Uint8ClampedArray, out: number[] | Uint8Array | Uint8ClampedArray

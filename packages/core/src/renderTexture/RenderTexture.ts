@@ -4,9 +4,6 @@ import { Texture } from '../textures/Texture';
 import type { Rectangle } from '@pixi/math';
 import type { Framebuffer } from '../framebuffer/Framebuffer';
 import type { IBaseTextureOptions } from '../textures/BaseTexture';
-import type { MSAA_QUALITY, SCALE_MODES } from '@pixi/constants';
-import { deprecation } from '@pixi/utils';
-
 /**
  * A RenderTexture is a special texture that allows any PixiJS display object to be rendered to it.
  *
@@ -28,9 +25,8 @@ import { deprecation } from '@pixi/utils';
  * sprite.anchor.x = 0.5;
  * sprite.anchor.y = 0.5;
  *
- * renderer.render(sprite, {renderTexture});
+ * renderer.render(sprite, renderTexture);
  * ```
- * Note that you should not create a new renderer, but reuse the same one as the rest of the application.
  *
  * The Sprite in this case will be rendered using its local transform. To render this sprite at 0,0
  * you can clear the transform
@@ -39,9 +35,9 @@ import { deprecation } from '@pixi/utils';
  *
  * sprite.setTransform()
  *
- * let renderTexture = new PIXI.RenderTexture.create({ width: 100, height: 100 });
+ * let renderTexture = new PIXI.RenderTexture.create(100, 100);
  *
- * renderer.render(sprite, {renderTexture});  // Renders to center of RenderTexture
+ * renderer.render(sprite, renderTexture);  // Renders to center of RenderTexture
  * ```
  *
  * @class
@@ -50,17 +46,48 @@ import { deprecation } from '@pixi/utils';
  */
 export class RenderTexture extends Texture
 {
-    public baseTexture: BaseRenderTexture;
     public filterFrame: Rectangle|null;
     public filterPoolKey: string|number|null;
-
+    legacyRenderer: any;
     /**
      * @param {PIXI.BaseRenderTexture} baseRenderTexture - The base texture object that this texture uses
      * @param {PIXI.Rectangle} [frame] - The rectangle frame of the texture to show
      */
     constructor(baseRenderTexture: BaseRenderTexture, frame?: Rectangle)
     {
+        // support for legacy..
+        let _legacyRenderer = null;
+
+        if (!(baseRenderTexture instanceof BaseRenderTexture))
+        {
+            /* eslint-disable prefer-rest-params, no-console */
+            const width = arguments[1];
+            const height = arguments[2];
+            const scaleMode = arguments[3];
+            const resolution = arguments[4];
+
+            // we have an old render texture..
+            console.warn(`Please use RenderTexture.create(${width}, ${height}) instead of the ctor directly.`);
+            _legacyRenderer = arguments[0];
+            /* eslint-enable prefer-rest-params, no-console */
+
+            frame = null;
+            baseRenderTexture = new BaseRenderTexture({
+                width,
+                height,
+                scaleMode,
+                resolution,
+            });
+        }
+
+        /**
+         * The base texture object that this texture uses
+         *
+         * @member {PIXI.BaseTexture}
+         */
         super(baseRenderTexture, frame);
+
+        this.legacyRenderer = _legacyRenderer;
 
         /**
          * This will let the renderer know if the texture is valid. If it's not then it cannot be rendered.
@@ -95,37 +122,20 @@ export class RenderTexture extends Texture
      */
     get framebuffer(): Framebuffer
     {
-        return this.baseTexture.framebuffer;
-    }
-
-    /**
-     * Shortcut to `this.framebuffer.multisample`.
-     *
-     * @member {PIXI.MSAA_QUALITY}
-     * @default PIXI.MSAA_QUALITY.NONE
-     */
-    get multisample(): MSAA_QUALITY
-    {
-        return this.framebuffer.multisample;
-    }
-
-    set multisample(value: MSAA_QUALITY)
-    {
-        this.framebuffer.multisample = value;
+        return (this.baseTexture as BaseRenderTexture).framebuffer;
     }
 
     /**
      * Resizes the RenderTexture.
      *
-     * @param {number} desiredWidth - The desired width to resize to.
-     * @param {number} desiredHeight - The desired height to resize to.
+     * @param {number} width - The width to resize to.
+     * @param {number} height - The height to resize to.
      * @param {boolean} [resizeBaseTexture=true] - Should the baseTexture.width and height values be resized as well?
      */
-    resize(desiredWidth: number, desiredHeight: number, resizeBaseTexture = true): void
+    resize(width: number, height: number, resizeBaseTexture = true): void
     {
-        const resolution = this.baseTexture.resolution;
-        const width = Math.round(desiredWidth * resolution) / resolution;
-        const height = Math.round(desiredHeight * resolution) / resolution;
+        width = Math.ceil(width);
+        height = Math.ceil(height);
 
         // TODO - could be not required..
         this.valid = (width > 0 && height > 0);
@@ -135,7 +145,7 @@ export class RenderTexture extends Texture
 
         if (resizeBaseTexture)
         {
-            this.baseTexture.resize(width, height);
+            (this.baseTexture as BaseRenderTexture).resize(width, height);
         }
 
         this.updateUvs();
@@ -160,47 +170,26 @@ export class RenderTexture extends Texture
     }
 
     /**
-     * Use the object-based construction instead.
-     *
-     * @method
-     * @deprecated since 6.0.0
-     * @param {number} [width]
-     * @param {number} [height]
-     * @param {PIXI.SCALE_MODES} [scaleMode=PIXI.settings.SCALE_MODE]
-     * @param {number} [resolution=PIXI.settings.FILTER_RESOLUTION]
-     */
-    static create(width: number, height: number, scaleMode?: SCALE_MODES, resolution?: number): RenderTexture;
-
-    /**
      * A short hand way of creating a render texture.
      *
-     * @method
      * @param {object} [options] - Options
      * @param {number} [options.width=100] - The width of the render texture
      * @param {number} [options.height=100] - The height of the render texture
-     * @param {PIXI.SCALE_MODES} [options.scaleMode=PIXI.settings.SCALE_MODE] - See {@link PIXI.SCALE_MODES}
-     *    for possible values
-     * @param {number} [options.resolution=PIXI.settings.RESOLUTION] - The resolution / device pixel ratio of the texture
-     *    being generated
-     * @param {PIXI.MSAA_QUALITY} [options.multisample=PIXI.MSAA_QUALITY.NONE] - The number of samples of the frame buffer
+     * @param {number} [options.scaleMode=PIXI.settings.SCALE_MODE] - See {@link PIXI.SCALE_MODES} for possible values
+     * @param {number} [options.resolution=1] - The resolution / device pixel ratio of the texture being generated
      * @return {PIXI.RenderTexture} The new render texture
      */
-    static create(options?: IBaseTextureOptions): RenderTexture;
-    static create(options?: IBaseTextureOptions | number, ...rest: any[]): RenderTexture
+    static create(options: IBaseTextureOptions): RenderTexture
     {
-        // @deprecated fallback, old-style: create(width, height, scaleMode, resolution)
+        // fallback, old-style: create(width, height, scaleMode, resolution)
         if (typeof options === 'number')
         {
-            // #if _DEBUG
-            deprecation('6.0.0', 'Arguments (width, height, scaleMode, resolution) have been deprecated.');
-            // #endif
-
             /* eslint-disable prefer-rest-params */
             options = {
                 width: options,
-                height: rest[0],
-                scaleMode: rest[1],
-                resolution: rest[2],
+                height: arguments[1],
+                scaleMode: arguments[2],
+                resolution: arguments[3],
             };
             /* eslint-enable prefer-rest-params */
         }

@@ -1,7 +1,7 @@
-import Polyfill from 'promise-polyfill';
+import { Polyfill } from 'es6-promise-polyfill';
 
 // Support for IE 9 - 11 which does not include Promises
-if (!self.Promise)
+if (!window.Promise)
 {
-    self.Promise = Polyfill;
+    window.Promise = Polyfill;
 }

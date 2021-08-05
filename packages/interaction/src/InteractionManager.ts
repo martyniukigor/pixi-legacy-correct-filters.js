@@ -11,7 +11,8 @@ import type { AbstractRenderer } from '@pixi/core';
 import type { Point, IPointData } from '@pixi/math';
 import type { Dict } from '@pixi/utils';
 
-// Mix interactiveTarget into DisplayObject.prototype
+// Mix interactiveTarget into DisplayObject.prototype,
+// after deprecation has been handled
 DisplayObject.mixin(interactiveTarget);
 
 const MOUSE_POINTER_ID = 1;
@@ -90,16 +91,15 @@ export class InteractionManager extends EventEmitter
     private _deltaTime: number;
     private _didMove: boolean;
     private _tempDisplayObject: DisplayObject;
-    private readonly _eventListenerOptions: { capture: true, passive: false };
 
     /**
      * @param {PIXI.CanvasRenderer|PIXI.Renderer} renderer - A reference to the current renderer
      * @param {object} [options] - The options for the manager.
      * @param {boolean} [options.autoPreventDefault=true] - Should the manager automatically prevent default browser actions.
-     * @param {number} [options.interactionFrequency=10] - Maximum frequency (ms) at pointer over/out states will be checked.
+     * @param {number} [options.interactionFrequency=10] - Maximum requency (ms) at pointer over/out states will be checked.
      * @param {number} [options.useSystemTicker=true] - Whether to add {@link tickerUpdate} to {@link PIXI.Ticker.system}.
      */
-    constructor(renderer: AbstractRenderer, options?: InteractionManagerOptions)
+    constructor(renderer: AbstractRenderer, options: InteractionManagerOptions)
     {
         super();
 
@@ -124,7 +124,7 @@ export class InteractionManager extends EventEmitter
         this.autoPreventDefault = options.autoPreventDefault !== undefined ? options.autoPreventDefault : true;
 
         /**
-         * Maximum frequency in milliseconds at which pointer over/out states will be checked by {@link tickerUpdate}.
+         * Maximum requency in milliseconds at which pointer over/out states will be checked by {@link tickerUpdate}.
          *
          * @member {number}
          * @default 10
@@ -205,12 +205,12 @@ export class InteractionManager extends EventEmitter
         this.tickerAdded = false;
 
         /**
-         * Is the mouse hovering over the renderer? If working in worker mouse considered to be over renderer by default.
+         * Is the mouse hovering over the renderer?
          *
          * @protected
          * @member {boolean}
          */
-        this.mouseOverRenderer = !('PointerEvent' in self);
+        this.mouseOverRenderer = false;
 
         /**
          * Does the device support touch events
@@ -219,7 +219,7 @@ export class InteractionManager extends EventEmitter
          * @readonly
          * @member {boolean}
          */
-        this.supportsTouchEvents = 'ontouchstart' in self;
+        this.supportsTouchEvents = 'ontouchstart' in window;
 
         /**
          * Does the device support pointer events
@@ -228,7 +228,7 @@ export class InteractionManager extends EventEmitter
          * @readonly
          * @member {boolean}
          */
-        this.supportsPointerEvents = !!self.PointerEvent;
+        this.supportsPointerEvents = !!window.PointerEvent;
 
         // this will make it so that you don't have to call bind all the time
 
@@ -331,14 +331,6 @@ export class InteractionManager extends EventEmitter
          * @private
          */
         this._tempDisplayObject = new TemporaryDisplayObject();
-
-        /**
-         * An options object specifies characteristics about the event listener.
-         * @private
-         * @readonly
-         * @member {Object.<string, boolean>}
-         */
-        this._eventListenerOptions = { capture: true, passive: false };
 
         /**
          * Fired when a pointer device button (usually a mouse left-button) is pressed on the display
@@ -534,8 +526,6 @@ export class InteractionManager extends EventEmitter
          * Fired when a pointer device button (usually a mouse left-button) is pressed on the display.
          * object. DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#mousedown
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -543,8 +533,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device secondary button (usually a mouse right-button) is pressed
          * on the display object. DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#rightdown
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -554,8 +542,6 @@ export class InteractionManager extends EventEmitter
          * Fired when a pointer device button (usually a mouse left-button) is released over the display
          * object. DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#mouseup
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -563,8 +549,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device secondary button (usually a mouse right-button) is released
          * over the display object. DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#rightup
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -574,8 +558,6 @@ export class InteractionManager extends EventEmitter
          * Fired when a pointer device button (usually a mouse left-button) is pressed and released on
          * the display object. DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#click
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -583,8 +565,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device secondary button (usually a mouse right-button) is pressed
          * and released on the display object. DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#rightclick
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -596,8 +576,6 @@ export class InteractionManager extends EventEmitter
          * [mousedown]{@link PIXI.DisplayObject#event:mousedown}.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#mouseupoutside
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -608,8 +586,6 @@ export class InteractionManager extends EventEmitter
          * [rightdown]{@link PIXI.DisplayObject#event:rightdown}.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#rightupoutside
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -617,8 +593,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device (usually a mouse) is moved while over the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#mousemove
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -628,8 +602,6 @@ export class InteractionManager extends EventEmitter
          * Fired when a pointer device (usually a mouse) is moved onto the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#mouseover
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -637,8 +609,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device (usually a mouse) is moved off the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#mouseout
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -648,8 +618,6 @@ export class InteractionManager extends EventEmitter
          * Fired when a pointer device button is pressed on the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#pointerdown
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -657,8 +625,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device button is released over the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#pointerup
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -668,8 +634,6 @@ export class InteractionManager extends EventEmitter
          * Fired when the operating system cancels a pointer event.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#pointercancel
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -677,8 +641,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device button is pressed and released on the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#pointertap
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -689,8 +651,6 @@ export class InteractionManager extends EventEmitter
          * registered a [pointerdown]{@link PIXI.DisplayObject#event:pointerdown}.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#pointerupoutside
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -698,8 +658,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device is moved while over the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#pointermove
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -709,8 +667,6 @@ export class InteractionManager extends EventEmitter
          * Fired when a pointer device is moved onto the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#pointerover
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -718,8 +674,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a pointer device is moved off the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#pointerout
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -729,8 +683,6 @@ export class InteractionManager extends EventEmitter
          * Fired when a touch point is placed on the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#touchstart
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -738,8 +690,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a touch point is removed from the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#touchend
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -749,8 +699,6 @@ export class InteractionManager extends EventEmitter
          * Fired when the operating system cancels a touch.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#touchcancel
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -758,8 +706,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a touch point is placed and removed from the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#tap
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -770,8 +716,6 @@ export class InteractionManager extends EventEmitter
          * registered a [touchstart]{@link PIXI.DisplayObject#event:touchstart}.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
          *
-         * This comes from the @pixi/interaction package.
-         *
          * @event PIXI.DisplayObject#touchendoutside
          * @param {PIXI.InteractionEvent} event - Interaction event
          */
@@ -779,8 +723,6 @@ export class InteractionManager extends EventEmitter
         /**
          * Fired when a touch point is moved along the display object.
          * DisplayObject's `interactive` property must be set to `true` to fire event.
-         *
-         * This comes from the @pixi/interaction package.
          *
          * @event PIXI.DisplayObject#touchmove
          * @param {PIXI.InteractionEvent} event - Interaction event
@@ -823,7 +765,7 @@ export class InteractionManager extends EventEmitter
      */
     get lastObjectRendered(): DisplayObject
     {
-        return (this.renderer._lastObjectRendered as DisplayObject) || this._tempDisplayObject;
+        return this.renderer._lastObjectRendered || this._tempDisplayObject;
     }
 
     /**
@@ -923,7 +865,7 @@ export class InteractionManager extends EventEmitter
 
         const style = this.interactionDOMElement.style as CrossCSSStyleDeclaration;
 
-        if (self.navigator.msPointerEnabled)
+        if (window.navigator.msPointerEnabled)
         {
             style.msContentZooming = 'none';
             style.msTouchAction = 'none';
@@ -933,29 +875,29 @@ export class InteractionManager extends EventEmitter
             style.touchAction = 'none';
         }
 
-        /*
+        /**
          * These events are added first, so that if pointer events are normalized, they are fired
          * in the same order as non-normalized events. ie. pointer event 1st, mouse / touch 2nd
          */
         if (this.supportsPointerEvents)
         {
-            self.document.addEventListener('pointermove', this.onPointerMove, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('pointerdown', this.onPointerDown, this._eventListenerOptions);
+            window.document.addEventListener('pointermove', this.onPointerMove, true);
+            this.interactionDOMElement.addEventListener('pointerdown', this.onPointerDown, true);
             // pointerout is fired in addition to pointerup (for touch events) and pointercancel
             // we already handle those, so for the purposes of what we do in onPointerOut, we only
             // care about the pointerleave event
-            this.interactionDOMElement.addEventListener('pointerleave', this.onPointerOut, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('pointerover', this.onPointerOver, this._eventListenerOptions);
-            self.addEventListener('pointercancel', this.onPointerCancel, this._eventListenerOptions);
-            self.addEventListener('pointerup', this.onPointerUp, this._eventListenerOptions);
+            this.interactionDOMElement.addEventListener('pointerleave', this.onPointerOut, true);
+            this.interactionDOMElement.addEventListener('pointerover', this.onPointerOver, true);
+            window.addEventListener('pointercancel', this.onPointerCancel, true);
+            window.addEventListener('pointerup', this.onPointerUp, true);
         }
         else
         {
-            self.document.addEventListener('mousemove', this.onPointerMove, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('mousedown', this.onPointerDown, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('mouseout', this.onPointerOut, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('mouseover', this.onPointerOver, this._eventListenerOptions);
-            self.addEventListener('mouseup', this.onPointerUp, this._eventListenerOptions);
+            window.document.addEventListener('mousemove', this.onPointerMove, true);
+            this.interactionDOMElement.addEventListener('mousedown', this.onPointerDown, true);
+            this.interactionDOMElement.addEventListener('mouseout', this.onPointerOut, true);
+            this.interactionDOMElement.addEventListener('mouseover', this.onPointerOver, true);
+            window.addEventListener('mouseup', this.onPointerUp, true);
         }
 
         // always look directly for touch events so that we can provide original data
@@ -963,10 +905,10 @@ export class InteractionManager extends EventEmitter
         // PointerEvents whenever available
         if (this.supportsTouchEvents)
         {
-            this.interactionDOMElement.addEventListener('touchstart', this.onPointerDown, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('touchcancel', this.onPointerCancel, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('touchend', this.onPointerUp, this._eventListenerOptions);
-            this.interactionDOMElement.addEventListener('touchmove', this.onPointerMove, this._eventListenerOptions);
+            this.interactionDOMElement.addEventListener('touchstart', this.onPointerDown, true);
+            this.interactionDOMElement.addEventListener('touchcancel', this.onPointerCancel, true);
+            this.interactionDOMElement.addEventListener('touchend', this.onPointerUp, true);
+            this.interactionDOMElement.addEventListener('touchmove', this.onPointerMove, true);
         }
 
         this.eventsAdded = true;
@@ -986,7 +928,7 @@ export class InteractionManager extends EventEmitter
 
         const style = this.interactionDOMElement.style as CrossCSSStyleDeclaration;
 
-        if (self.navigator.msPointerEnabled)
+        if (window.navigator.msPointerEnabled)
         {
             style.msContentZooming = '';
             style.msTouchAction = '';
@@ -998,28 +940,28 @@ export class InteractionManager extends EventEmitter
 
         if (this.supportsPointerEvents)
         {
-            self.document.removeEventListener('pointermove', this.onPointerMove, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('pointerdown', this.onPointerDown, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('pointerleave', this.onPointerOut, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('pointerover', this.onPointerOver, this._eventListenerOptions);
-            self.removeEventListener('pointercancel', this.onPointerCancel, this._eventListenerOptions);
-            self.removeEventListener('pointerup', this.onPointerUp, this._eventListenerOptions);
+            window.document.removeEventListener('pointermove', this.onPointerMove, true);
+            this.interactionDOMElement.removeEventListener('pointerdown', this.onPointerDown, true);
+            this.interactionDOMElement.removeEventListener('pointerleave', this.onPointerOut, true);
+            this.interactionDOMElement.removeEventListener('pointerover', this.onPointerOver, true);
+            window.removeEventListener('pointercancel', this.onPointerCancel, true);
+            window.removeEventListener('pointerup', this.onPointerUp, true);
         }
         else
         {
-            self.document.removeEventListener('mousemove', this.onPointerMove, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('mousedown', this.onPointerDown, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('mouseout', this.onPointerOut, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('mouseover', this.onPointerOver, this._eventListenerOptions);
-            self.removeEventListener('mouseup', this.onPointerUp, this._eventListenerOptions);
+            window.document.removeEventListener('mousemove', this.onPointerMove, true);
+            this.interactionDOMElement.removeEventListener('mousedown', this.onPointerDown, true);
+            this.interactionDOMElement.removeEventListener('mouseout', this.onPointerOut, true);
+            this.interactionDOMElement.removeEventListener('mouseover', this.onPointerOver, true);
+            window.removeEventListener('mouseup', this.onPointerUp, true);
         }
 
         if (this.supportsTouchEvents)
         {
-            this.interactionDOMElement.removeEventListener('touchstart', this.onPointerDown, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('touchcancel', this.onPointerCancel, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('touchend', this.onPointerUp, this._eventListenerOptions);
-            this.interactionDOMElement.removeEventListener('touchmove', this.onPointerMove, this._eventListenerOptions);
+            this.interactionDOMElement.removeEventListener('touchstart', this.onPointerDown, true);
+            this.interactionDOMElement.removeEventListener('touchcancel', this.onPointerCancel, true);
+            this.interactionDOMElement.removeEventListener('touchend', this.onPointerUp, true);
+            this.interactionDOMElement.removeEventListener('touchmove', this.onPointerMove, true);
         }
 
         this.interactionDOMElement = null;
@@ -1108,14 +1050,6 @@ export class InteractionManager extends EventEmitter
     public setCursorMode(mode: string): void
     {
         mode = mode || 'default';
-        let applyStyles = true;
-
-        // offscreen canvas does not support setting styles, but cursor modes can be functions,
-        // in order to handle pixi rendered cursors, so we can't bail
-        if (self.OffscreenCanvas && this.interactionDOMElement instanceof OffscreenCanvas)
-        {
-            applyStyles = false;
-        }
         // if the mode didn't actually change, bail early
         if (this.currentCursorMode === mode)
         {
@@ -1131,10 +1065,7 @@ export class InteractionManager extends EventEmitter
             {
                 case 'string':
                     // string styles are handled as cursor CSS
-                    if (applyStyles)
-                    {
-                        this.interactionDOMElement.style.cursor = style;
-                    }
+                    this.interactionDOMElement.style.cursor = style;
                     break;
                 case 'function':
                     // functions are just called, and passed the cursor mode
@@ -1143,14 +1074,11 @@ export class InteractionManager extends EventEmitter
                 case 'object':
                     // if it is an object, assume that it is a dictionary of CSS styles,
                     // apply it to the interactionDOMElement
-                    if (applyStyles)
-                    {
-                        Object.assign(this.interactionDOMElement.style, style);
-                    }
+                    Object.assign(this.interactionDOMElement.style, style);
                     break;
             }
         }
-        else if (applyStyles && typeof mode === 'string' && !Object.prototype.hasOwnProperty.call(this.cursorStyles, mode))
+        else if (typeof mode === 'string' && !Object.prototype.hasOwnProperty.call(this.cursorStyles, mode))
         {
             // if it mode is a string (not a Symbol) and cursorStyles doesn't have any entry
             // for the mode, then assume that the dev wants it to be CSS for the cursor.
@@ -1214,14 +1142,7 @@ export class InteractionManager extends EventEmitter
         // IE 11 fix
         if (!this.interactionDOMElement.parentElement)
         {
-            rect = {
-                x: 0,
-                y: 0,
-                width: (this.interactionDOMElement as any).width,
-                height: (this.interactionDOMElement as any).height,
-                left: 0,
-                top: 0
-            };
+            rect = { x: 0, y: 0, width: 0, height: 0 };
         }
         else
         {
@@ -1298,7 +1219,7 @@ export class InteractionManager extends EventEmitter
 
         const events = this.normalizeToPointerData(originalEvent);
 
-        /*
+        /**
          * No need to prevent default on natural pointer events, as there are no side effects
          * Normalized events, however, may have the double mousedown/touchstart issue on the native android browser,
          * so still need to be prevented.
@@ -1926,8 +1847,7 @@ export class InteractionManager extends EventEmitter
             }
         }
         // apparently PointerEvent subclasses MouseEvent, so yay
-        else if (!self.MouseEvent
-            || (event instanceof MouseEvent && (!this.supportsPointerEvents || !(event instanceof self.PointerEvent))))
+        else if (event instanceof MouseEvent && (!this.supportsPointerEvents || !(event instanceof window.PointerEvent)))
         {
             const tempEvent = event as PixiPointerEvent;
 

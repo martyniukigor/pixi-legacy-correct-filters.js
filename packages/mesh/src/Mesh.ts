@@ -1,4 +1,4 @@
-import { Shader, State } from '@pixi/core';
+import { State } from '@pixi/core';
 import { Point, Polygon } from '@pixi/math';
 import { BLEND_MODES, DRAW_MODES } from '@pixi/constants';
 import { Container } from '@pixi/display';
@@ -34,10 +34,10 @@ export interface Mesh extends GlobalMixins.Mesh {}
  * @extends PIXI.Container
  * @memberof PIXI
  */
-export class Mesh<T extends Shader = MeshMaterial> extends Container
+export class Mesh extends Container
 {
     public readonly geometry: Geometry;
-    public shader: T;
+    public shader: MeshMaterial;
     public state: State;
     public drawMode: DRAW_MODES;
     public start: number;
@@ -62,7 +62,7 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
      *        if no state is provided, uses {@link PIXI.State.for2d} to create a 2D state for PixiJS.
      * @param {number} [drawMode=PIXI.DRAW_MODES.TRIANGLES] - the drawMode, can be any of the PIXI.DRAW_MODES consts
      */
-    constructor(geometry: Geometry, shader: T, state?: State, drawMode = DRAW_MODES.TRIANGLES)
+    constructor(geometry: Geometry, shader: MeshMaterial, state?: State, drawMode = DRAW_MODES.TRIANGLES)
     {
         super();
 
@@ -114,14 +114,14 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
         this.size = 0;
 
         /**
-         * these are used as easy access for batching
+         * thease are used as easy access for batching
          * @member {Float32Array}
          * @private
          */
         this.uvs = null;
 
         /**
-         * these are used as easy access for batching
+         * thease are used as easy access for batching
          * @member {Uint16Array}
          * @private
          */
@@ -140,7 +140,7 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
          * @member {number}
          * @private
          */
-        this.vertexDirty = -1;
+        this.vertexDirty = 0;
 
         this._transformID = -1;
 
@@ -185,12 +185,12 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
      * Alias for {@link PIXI.Mesh#shader}.
      * @member {PIXI.MeshMaterial}
      */
-    set material(value: T)
+    set material(value: MeshMaterial)
     {
         this.shader = value;
     }
 
-    get material(): T
+    get material(): MeshMaterial
     {
         return this.shader;
     }
@@ -240,34 +240,32 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
      * The multiply tint applied to the Mesh. This is a hex value. A value of
      * `0xFFFFFF` will remove any tint effect.
      *
-     * Null for non-MeshMaterial shaders
      * @member {number}
      * @default 0xFFFFFF
      */
     get tint(): number
     {
-        return 'tint' in this.shader ? (this.shader as unknown as MeshMaterial).tint : null;
+        return this.shader.tint;
     }
 
     set tint(value: number)
     {
-        (this.shader as unknown as MeshMaterial).tint = value;
+        this.shader.tint = value;
     }
 
     /**
      * The texture that the Mesh uses.
      *
-     * Null for non-MeshMaterial shaders
      * @member {PIXI.Texture}
      */
     get texture(): Texture
     {
-        return 'texture' in this.shader ? (this.shader as unknown as MeshMaterial).texture : null;
+        return this.shader.texture;
     }
 
     set texture(value: Texture)
     {
-        (this.shader as unknown as MeshMaterial).texture = value;
+        this.shader.texture = value;
     }
 
     /**
@@ -280,11 +278,10 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
         // set properties for batching..
         // TODO could use a different way to grab verts?
         const vertices = this.geometry.buffers[0].data;
-        const shader = this.shader as unknown as MeshMaterial;
 
         // TODO benchmark check for attribute size..
         if (
-            shader.batchable
+            this.shader.batchable
             && this.drawMode === DRAW_MODES.TRIANGLES
             && vertices.length < Mesh.BATCHABLE_SIZE * 2
         )
@@ -304,7 +301,7 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
      */
     protected _renderDefault(renderer: Renderer): void
     {
-        const shader = this.shader as unknown as MeshMaterial;
+        const shader = this.shader;
 
         shader.alpha = this.worldAlpha;
         if (shader.update)
@@ -314,8 +311,12 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
 
         renderer.batch.flush();
 
+        if (shader.program.uniformData.translationMatrix)
+        {
+            shader.uniforms.translationMatrix = this.transform.worldTransform.toArray(true);
+        }
+
         // bind and sync uniforms..
-        shader.uniforms.translationMatrix = this.transform.worldTransform.toArray(true);
         renderer.shader.bind(shader);
 
         // set state..
@@ -336,21 +337,20 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
     protected _renderToBatch(renderer: Renderer): void
     {
         const geometry = this.geometry;
-        const shader = this.shader as unknown as MeshMaterial;
 
-        if (shader.uvMatrix)
+        if (this.shader.uvMatrix)
         {
-            shader.uvMatrix.update();
+            this.shader.uvMatrix.update();
             this.calculateUvs();
         }
 
         // set properties for batching..
         this.calculateVertices();
         this.indices = geometry.indexBuffer.data as Uint16Array;
-        this._tintRGB = shader._tintRGB;
-        this._texture = shader.texture;
+        this._tintRGB = this.shader._tintRGB;
+        this._texture = this.shader.texture;
 
-        const pluginName = (this.material as unknown as MeshMaterial).pluginName;
+        const pluginName = this.material.pluginName;
 
         renderer.batch.setObjectRenderer(renderer.plugins[pluginName]);
         renderer.plugins[pluginName].render(this);
@@ -362,11 +362,9 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
     public calculateVertices(): void
     {
         const geometry = this.geometry;
-        const verticesBuffer = geometry.buffers[0];
-        const vertices = verticesBuffer.data;
-        const vertexDirtyId = verticesBuffer._updateID;
+        const vertices = geometry.buffers[0].data;
 
-        if (vertexDirtyId === this.vertexDirty && this._transformID === this.transform._worldID)
+        if ((geometry as any).vertexDirtyId === this.vertexDirty && this._transformID === this.transform._worldID)
         {
             return;
         }
@@ -407,7 +405,7 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
             }
         }
 
-        this.vertexDirty = vertexDirtyId;
+        this.vertexDirty = (geometry as any).vertexDirtyId;
     }
 
     /**
@@ -416,13 +414,12 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
     public calculateUvs(): void
     {
         const geomUvs = this.geometry.buffers[1];
-        const shader = this.shader as unknown as MeshMaterial;
 
-        if (!shader.uvMatrix.isSimple)
+        if (!this.shader.uvMatrix.isSimple)
         {
             if (!this.batchUvs)
             {
-                this.batchUvs = new MeshBatchUvs(geomUvs, shader.uvMatrix);
+                this.batchUvs = new MeshBatchUvs(geomUvs, this.shader.uvMatrix);
             }
             this.batchUvs.update();
             this.uvs = this.batchUvs.data;
@@ -497,7 +494,7 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
      * @param {boolean} [options.children=false] - if set to true, all the children will have
      *  their destroy method called as well. 'options' will be passed on to those calls.
      */
-    public destroy(options?: IDestroyOptions|boolean): void
+    public destroy(options: IDestroyOptions|boolean): void
     {
         super.destroy(options);
 
@@ -505,12 +502,6 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
         if (this.geometry.refCount === 0)
         {
             this.geometry.dispose();
-        }
-
-        if (this._cachedTexture)
-        {
-            this._cachedTexture.destroy();
-            this._cachedTexture = null;
         }
 
         (this as any).geometry = null;
@@ -530,3 +521,4 @@ export class Mesh<T extends Shader = MeshMaterial> extends Container
      */
     public static BATCHABLE_SIZE = 100;
 }
+

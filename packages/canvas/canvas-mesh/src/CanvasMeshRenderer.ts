@@ -1,4 +1,3 @@
-import { Texture } from '@pixi/core';
 import { DRAW_MODES } from '@pixi/constants';
 import { canvasUtils } from '@pixi/canvas-renderer';
 
@@ -14,10 +13,11 @@ import type { Mesh } from '@pixi/mesh';
  */
 export class CanvasMeshRenderer
 {
-    /** A reference to the current renderer */
     public renderer: CanvasRenderer;
 
-    /** @param renderer - A reference to the current renderer */
+    /**
+     * @param {PIXI.CanvasRenderer} renderer - The renderer this downport works for
+     */
     constructor(renderer: CanvasRenderer)
     {
         this.renderer = renderer;
@@ -26,7 +26,7 @@ export class CanvasMeshRenderer
     /**
      * Renders the Mesh
      *
-     * @param mesh - the Mesh to render
+     * @param {PIXI.Mesh} mesh - the Mesh to render
      */
     public render(mesh: Mesh): void
     {
@@ -51,7 +51,7 @@ export class CanvasMeshRenderer
      * Draws the object in Triangle Mesh mode
      *
      * @private
-     * @param mesh - the Mesh to render
+     * @param {PIXI.Mesh} mesh - the Mesh to render
      */
     private _renderTriangleMesh(mesh: Mesh): void
     {
@@ -71,7 +71,7 @@ export class CanvasMeshRenderer
      * Draws the object in triangle mode using canvas
      *
      * @private
-     * @param mesh - the current mesh
+     * @param {PIXI.Mesh} mesh - the current mesh
      */
     private _renderTriangles(mesh: Mesh): void
     {
@@ -94,10 +94,10 @@ export class CanvasMeshRenderer
      * Draws one of the triangles that from the Mesh
      *
      * @private
-     * @param mesh - the current mesh
-     * @param index0 - the index of the first vertex
-     * @param index1 - the index of the second vertex
-     * @param index2 - the index of the third vertex
+     * @param {PIXI.Mesh} mesh - the current mesh
+     * @param {number} index0 - the index of the first vertex
+     * @param {number} index1 - the index of the second vertex
+     * @param {number} index2 - the index of the third vertex
      */
     private _renderDrawTriangle(mesh: Mesh, index0: number, index1: number, index2: number): void
     {
@@ -119,11 +119,7 @@ export class CanvasMeshRenderer
             if (mesh._cachedTint !== mesh.tint)
             {
                 mesh._cachedTint = mesh.tint;
-                mesh._cachedTexture = mesh._cachedTexture || new Texture(base);
-                mesh._tintedCanvas = canvasUtils.getTintedCanvas(
-                    { texture: mesh._cachedTexture },
-                    mesh.tint
-                ) as HTMLCanvasElement;
+                mesh._tintedCanvas = canvasUtils.getTintedCanvas(mesh, mesh.tint) as HTMLCanvasElement;
             }
         }
 
@@ -143,52 +139,38 @@ export class CanvasMeshRenderer
         let y1 = vertices[index1 + 1];
         let y2 = vertices[index2 + 1];
 
-        const screenPadding = mesh.canvasPadding / this.renderer.resolution;
+        const canvasPadding = mesh.canvasPadding / this.renderer.resolution;
 
-        if (screenPadding > 0)
+        if (canvasPadding > 0)
         {
-            const { a, b, c, d } = mesh.worldTransform;
-
+            const paddingX = canvasPadding / Math.abs(mesh.worldTransform.a);
+            const paddingY = canvasPadding / Math.abs(mesh.worldTransform.d);
             const centerX = (x0 + x1 + x2) / 3;
             const centerY = (y0 + y1 + y2) / 3;
 
             let normX = x0 - centerX;
             let normY = y0 - centerY;
 
-            // Transform to screen space and calculate the distance
-            let screenX = (a * normX) + (c * normY);
-            let screenY = (b * normX) + (d * normY);
-            let screenDist = Math.sqrt((screenX * screenX) + (screenY * screenY));
+            let dist = Math.sqrt((normX * normX) + (normY * normY));
 
-            // Factor by which to scale in order to add padding equal to screenPadding
-            let paddingFactor = 1 + (screenPadding / screenDist);
+            x0 = centerX + ((normX / dist) * (dist + paddingX));
+            y0 = centerY + ((normY / dist) * (dist + paddingY));
 
-            x0 = centerX + (normX * paddingFactor);
-            y0 = centerY + (normY * paddingFactor);
+            //
 
             normX = x1 - centerX;
             normY = y1 - centerY;
 
-            screenX = (a * normX) + (c * normY);
-            screenY = (b * normX) + (d * normY);
-            screenDist = Math.sqrt((screenX * screenX) + (screenY * screenY));
-
-            paddingFactor = 1 + (screenPadding / screenDist);
-
-            x1 = centerX + (normX * paddingFactor);
-            y1 = centerY + (normY * paddingFactor);
+            dist = Math.sqrt((normX * normX) + (normY * normY));
+            x1 = centerX + ((normX / dist) * (dist + paddingX));
+            y1 = centerY + ((normY / dist) * (dist + paddingY));
 
             normX = x2 - centerX;
             normY = y2 - centerY;
 
-            screenX = (a * normX) + (c * normY);
-            screenY = (b * normX) + (d * normY);
-            screenDist = Math.sqrt((screenX * screenX) + (screenY * screenY));
-
-            paddingFactor = 1 + (screenPadding / screenDist);
-
-            x2 = centerX + (normX * paddingFactor);
-            y2 = centerY + (normY * paddingFactor);
+            dist = Math.sqrt((normX * normX) + (normY * normY));
+            x2 = centerX + ((normX / dist) * (dist + paddingX));
+            y2 = centerY + ((normY / dist) * (dist + paddingY));
         }
 
         context.save();
@@ -240,7 +222,7 @@ export class CanvasMeshRenderer
      * Renders a flat Mesh
      *
      * @private
-     * @param mesh - The Mesh to render
+     * @param {PIXI.Mesh} mesh - The Mesh to render
      */
     renderMeshFlat(mesh: Mesh): void
     {
@@ -276,7 +258,10 @@ export class CanvasMeshRenderer
         context.closePath();
     }
 
-    /** destroy the the renderer */
+    /**
+     * destroy the the renderer.
+     *
+     */
     public destroy(): void
     {
         this.renderer = null;

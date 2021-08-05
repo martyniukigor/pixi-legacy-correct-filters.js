@@ -2,7 +2,6 @@ import { Shader } from '../shader/Shader';
 import { Program } from '../shader/Program';
 import { State } from '../state/State';
 import { settings } from '@pixi/settings';
-import { MSAA_QUALITY } from '@pixi/constants';
 import defaultVertex from './defaultFilter.vert';
 import defaultFragment from './defaultFilter.frag';
 
@@ -13,8 +12,7 @@ import type { BLEND_MODES, CLEAR_MODES } from '@pixi/constants';
 import type { Dict } from '@pixi/utils';
 
 /**
- * A filter is a special shader that applies post-processing effects to an input texture and writes into an output
- * render-target.
+ * Filter is a special type of WebGL shader that is applied to the screen.
  *
  * {@link http://pixijs.io/examples/#/filters/blur-filter.js Example} of the
  * {@link PIXI.filters.BlurFilter BlurFilter}.
@@ -44,41 +42,6 @@ import type { Dict } from '@pixi/utils';
  *
  * Also be aware that we have changed default vertex shader, please consult
  * {@link https://github.com/pixijs/pixi.js/wiki/v5-Creating-filters Wiki}.
- *
- * ### Frames
- *
- * The following table summarizes the coordinate spaces used in the filtering pipeline:
- *
- * <table>
- * <thead>
- *   <tr>
- *     <th>Coordinate Space</th>
- *     <th>Description</th>
- *   </tr>
- * </thead>
- * <tbody>
- *   <tr>
- *     <td>Texture Coordinates</td>
- *     <td>
- *         The texture (or UV) coordinates in the input base-texture's space. These are normalized into the (0,1) range along
- *         both axes.
- *     </td>
- *   </tr>
- *   <tr>
- *     <td>World Space</td>
- *     <td>
- *         A point in the same space as the world bounds of any display-object (i.e. in the scene graph's space).
- *     </td>
- *   </tr>
- *   <tr>
- *     <td>Physical Pixels</td>
- *     <td>
- *         This is base-texture's space with the origin on the top-left. You can calculate these by multiplying the texture
- *         coordinates by the dimensions of the texture.
- *     </td>
- *   </tr>
- * </tbody>
- * </table>
  *
  * ### Built-in Uniforms
  *
@@ -165,7 +128,7 @@ import type { Dict } from '@pixi/utils';
  * `inputClamp.zw` is bottom-right pixel center.
  *
  * ```
- * vec4 color = texture2D(uSampler, clamp(modifiedTextureCoord, inputClamp.xy, inputClamp.zw))
+ * vec4 color = texture2D(uSampler, clamp(modifigedTextureCoord, inputClamp.xy, inputClamp.zw))
  * ```
  * OR
  * ```
@@ -188,13 +151,8 @@ export class Filter extends Shader
 {
     public padding: number;
     public resolution: number;
-    public multisample: MSAA_QUALITY;
     public enabled: boolean;
     public autoFit: boolean;
-    /**
-     * Legacy filters use position and uvs from attributes (set by filter system)
-     * @readonly
-     */
     public legacy: boolean;
     state: State;
     /**
@@ -227,13 +185,6 @@ export class Filter extends Shader
         this.resolution = settings.FILTER_RESOLUTION;
 
         /**
-         * The samples of the filter.
-         *
-         * @member {PIXI.MSAA_QUALITY}
-         */
-        this.multisample = settings.FILTER_MULTISAMPLE;
-
-        /**
          * If enabled is true the filter is applied, if false it will not.
          *
          * @member {boolean}
@@ -249,6 +200,13 @@ export class Filter extends Shader
         this.autoFit = true;
 
         /**
+         * Legacy filters use position and uvs from attributes
+         * @member {boolean}
+         * @readonly
+         */
+        this.legacy = !!this.program.attributeData.aTextureCoord;
+
+        /**
          * The WebGL state the filter requires to render
          * @member {PIXI.State}
          */
@@ -258,15 +216,15 @@ export class Filter extends Shader
     /**
      * Applies the filter
      *
-     * @param {PIXI.FilterSystem} filterManager - The renderer to retrieve the filter from
+     * @param {PIXI.systems.FilterSystem} filterManager - The renderer to retrieve the filter from
      * @param {PIXI.RenderTexture} input - The input render target.
      * @param {PIXI.RenderTexture} output - The target to output to.
-     * @param {PIXI.CLEAR_MODES} [clearMode] - Should the output be cleared before rendering to it.
+     * @param {PIXI.CLEAR_MODES} clearMode - Should the output be cleared before rendering to it.
      * @param {object} [currentState] - It's current state of filter.
      *        There are some useful properties in the currentState :
      *        target, filters, sourceFrame, destinationFrame, renderTarget, resolution
      */
-    apply(filterManager: FilterSystem, input: RenderTexture, output: RenderTexture, clearMode?: CLEAR_MODES,
+    apply(filterManager: FilterSystem, input: RenderTexture, output: RenderTexture, clearMode: CLEAR_MODES,
         _currentState?: FilterState): void
     {
         // do as you please!

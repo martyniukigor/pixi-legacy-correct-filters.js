@@ -1,41 +1,52 @@
 import { ENV } from '@pixi/constants';
+import { System } from '../System';
 import { settings } from '../settings';
 
-import type { ISystem } from '../ISystem';
 import type { IRenderingContext } from '../IRenderingContext';
 import type { Renderer } from '../Renderer';
-import type { WebGLExtensions } from './WebGLExtensions';
 
 let CONTEXT_UID_COUNTER = 0;
 
 export interface ISupportDict {
     uint32Indices: boolean;
 }
-
 /**
  * System plugin to the renderer to manage the context.
  *
  * @class
  * @extends PIXI.System
- * @memberof PIXI
+ * @memberof PIXI.systems
  */
-export class ContextSystem implements ISystem
+export class ContextSystem extends System
 {
     public webGLVersion: number;
     readonly supports: ISupportDict;
 
     protected CONTEXT_UID: number;
     protected gl: IRenderingContext;
-
-    public extensions: WebGLExtensions;
-    private renderer: Renderer;
+    /* eslint-disable camelcase */
+    extensions:
+    {
+        drawBuffers?: WEBGL_draw_buffers;
+        depthTexture?: OES_texture_float;
+        loseContext?: WEBGL_lose_context;
+        vertexArrayObject?: OES_vertex_array_object;
+        anisotropicFiltering?: EXT_texture_filter_anisotropic;
+        uint32ElementIndex?: OES_element_index_uint;
+        floatTexture?: OES_texture_float;
+        floatTextureLinear?: OES_texture_float_linear;
+        textureHalfFloat?: OES_texture_half_float;
+        textureHalfFloatLinear?: OES_texture_half_float_linear;
+        colorBufferFloat?: WEBGL_color_buffer_float;
+    };
+    /* eslint-enable camelcase */
 
     /**
      * @param {PIXI.Renderer} renderer - The renderer this System works for.
      */
     constructor(renderer: Renderer)
     {
-        this.renderer = renderer;
+        super(renderer);
 
         /**
          * Either 1 or 2 to reflect the WebGL version being used
@@ -135,9 +146,8 @@ export class ContextSystem implements ISystem
     /**
      * Helper class to create a WebGL Context
      *
-     * @param {HTMLCanvasElement} canvas - the canvas element that we will get the context from
-     * @param {object} options - An options object that gets passed in to the canvas element containing the
-     *    context attributes
+     * @param canvas {HTMLCanvasElement} the canvas element that we will get the context from
+     * @param options {object} An options object that gets passed in to the canvas element containing the context attributes
      * @see https://developer.mozilla.org/en/docs/Web/API/HTMLCanvasElement/getContext
      * @return {WebGLRenderingContext} the WebGL context
      */
@@ -185,29 +195,16 @@ export class ContextSystem implements ISystem
         // time to set up default extensions that Pixi uses.
         const { gl } = this;
 
-        const common = {
-            anisotropicFiltering: gl.getExtension('EXT_texture_filter_anisotropic'),
-            floatTextureLinear: gl.getExtension('OES_texture_float_linear'),
-
-            s3tc: gl.getExtension('WEBGL_compressed_texture_s3tc'),
-            s3tc_sRGB: gl.getExtension('WEBGL_compressed_texture_s3tc_srgb'), // eslint-disable-line camelcase
-            etc: gl.getExtension('WEBGL_compressed_texture_etc'),
-            etc1: gl.getExtension('WEBGL_compressed_texture_etc1'),
-            pvrtc: gl.getExtension('WEBGL_compressed_texture_pvrtc')
-                || gl.getExtension('WEBKIT_WEBGL_compressed_texture_pvrtc'),
-            atc: gl.getExtension('WEBGL_compressed_texture_atc'),
-            astc: gl.getExtension('WEBGL_compressed_texture_astc')
-        };
-
         if (this.webGLVersion === 1)
         {
-            Object.assign(this.extensions, common, {
+            Object.assign(this.extensions, {
                 drawBuffers: gl.getExtension('WEBGL_draw_buffers'),
                 depthTexture: gl.getExtension('WEBGL_depth_texture'),
                 loseContext: gl.getExtension('WEBGL_lose_context'),
                 vertexArrayObject: gl.getExtension('OES_vertex_array_object')
                     || gl.getExtension('MOZ_OES_vertex_array_object')
                     || gl.getExtension('WEBKIT_OES_vertex_array_object'),
+                anisotropicFiltering: gl.getExtension('EXT_texture_filter_anisotropic'),
                 uint32ElementIndex: gl.getExtension('OES_element_index_uint'),
                 // Floats and half-floats
                 floatTexture: gl.getExtension('OES_texture_float'),
@@ -218,9 +215,11 @@ export class ContextSystem implements ISystem
         }
         else if (this.webGLVersion === 2)
         {
-            Object.assign(this.extensions, common, {
+            Object.assign(this.extensions, {
+                anisotropicFiltering: gl.getExtension('EXT_texture_filter_anisotropic'),
                 // Floats and half-floats
-                colorBufferFloat: gl.getExtension('EXT_color_buffer_float')
+                colorBufferFloat: gl.getExtension('EXT_color_buffer_float'),
+                floatTextureLinear: gl.getExtension('OES_texture_float_linear'),
             });
         }
     }
@@ -249,8 +248,6 @@ export class ContextSystem implements ISystem
     destroy(): void
     {
         const view = this.renderer.view;
-
-        this.renderer = null;
 
         // remove listeners
         (view as any).removeEventListener('webglcontextlost', this.handleContextLost);
@@ -287,7 +284,7 @@ export class ContextSystem implements ISystem
     {
         const attributes = gl.getContextAttributes();
 
-        const isWebGl2 = 'WebGL2RenderingContext' in self && gl instanceof self.WebGL2RenderingContext;
+        const isWebGl2 = 'WebGL2RenderingContext' in window && gl instanceof window.WebGL2RenderingContext;
 
         if (isWebGl2)
         {

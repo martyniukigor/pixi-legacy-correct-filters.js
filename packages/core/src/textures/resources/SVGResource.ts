@@ -15,8 +15,14 @@ export interface ISVGResourceOptions
 /**
  * Resource type for SVG elements and graphics.
  * @class
- * @extends PIXI.BaseImageResource
- * @memberof PIXI
+ * @extends PIXI.resources.BaseImageResource
+ * @memberof PIXI.resources
+ * @param {string} source - Base64 encoded SVG element or URL for SVG file.
+ * @param {object} [options] - Options to use
+ * @param {number} [options.scale=1] - Scale to apply to SVG. Overridden by...
+ * @param {number} [options.width] - Rasterize SVG this wide. Aspect ratio preserved if height not specified.
+ * @param {number} [options.height] - Rasterize SVG this high. Aspect ratio preserved if width not specified.
+ * @param {boolean} [options.autoLoad=true] - Start loading right away.
  */
 export class SVGResource extends BaseImageResource
 {
@@ -28,15 +34,7 @@ export class SVGResource extends BaseImageResource
     private _load: Promise<SVGResource>;
     private _crossorigin?: boolean|string;
 
-    /**
-     * @param {string} source - Base64 encoded SVG element or URL for SVG file.
-     * @param {object} [options] - Options to use
-     * @param {number} [options.scale=1] - Scale to apply to SVG. Overridden by...
-     * @param {number} [options.width] - Rasterize SVG this wide. Aspect ratio preserved if height not specified.
-     * @param {number} [options.height] - Rasterize SVG this high. Aspect ratio preserved if width not specified.
-     * @param {boolean} [options.autoLoad=true] - Start loading right away.
-     */
-    constructor(sourceBase64: string, options?: ISVGResourceOptions)
+    constructor(sourceBase64: string, options: ISVGResourceOptions)
     {
         options = options || {};
 
@@ -245,22 +243,15 @@ export class SVGResource extends BaseImageResource
             // source is SVG data-uri
             || (typeof source === 'string' && (/^data:image\/svg\+xml(;(charset=utf8|utf8))?;base64/).test(source))
             // source is SVG inline
-            || (typeof source === 'string' && SVGResource.SVG_XML.test(source));
+            || (typeof source === 'string' && source.indexOf('<svg') === 0);
     }
-
-    /**
-     * RegExp for SVG XML document.
-     *
-     * @example &lt;?xml version="1.0" encoding="utf-8" ?&gt;&lt;!-- image/svg --&gt;&lt;svg
-     */
-    static SVG_XML = /^(<\?xml[^?]+\?>)?\s*(<!--[^(-->)]*-->)?\s*\<svg/m;
 
     /**
      * RegExp for SVG size.
      *
      * @static
      * @constant {RegExp|string} SVG_SIZE
-     * @memberof PIXI.SVGResource
+     * @memberof PIXI.resources.SVGResource
      * @example &lt;svg width="100" height="100"&gt;&lt;/svg&gt;
      */
     static SVG_SIZE = /<svg[^>]*(?:\s(width|height)=('|")(\d*(?:\.\d+)?)(?:px)?('|"))[^>]*(?:\s(width|height)=('|")(\d*(?:\.\d+)?)(?:px)?('|"))[^>]*>/i; // eslint-disable-line max-len

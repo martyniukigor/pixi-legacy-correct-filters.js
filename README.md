@@ -1,10 +1,9 @@
 PixiJS — The HTML5 Creation Engine
 =============
 
-![pixi.js logo](https://pixijs.download/pixijs-banner-no-version.png)
-
+![pixi.js logo](https://pixijs.download/pixijs-banner-v5.png)
 [<img src="https://img.shields.io/badge/slack/pixijs-gray.svg?logo=slack">](https://join.slack.com/t/pixijs/shared_invite/zt-dcem1map-uVuVGC7pZ0trF8SrcA2p9g)
-[![npm version](https://badge.fury.io/js/pixi.js.svg)](https://badge.fury.io/js/pixi.js)
+[![Inline docs](http://inch-ci.org/github/pixijs/pixi.js.svg?branch=dev)](http://inch-ci.org/github/pixijs/pixi.js)
 [![Node.js CI](https://github.com/pixijs/pixi.js/workflows/Node.js%20CI/badge.svg)](https://github.com/pixi.js/pixi.js/actions?query=workflow%3A%22Node.js+CI%22)
 
 The aim of this project is to provide a fast lightweight 2D library that works
@@ -74,7 +73,7 @@ _Note: `5.1.3` can be replaced by any [released](https://github.com/pixijs/pixi.
 
 ### Demos ###
 
-- [Filters Demo](https://pixijs.io/filters/tools/demo/)
+- [Filters Demo](http://pixijs.io/pixi-filters/tools/demo/)
 - [Run Pixie Run](http://work.goodboydigital.com/runpixierun/)
 - [Flash vs HTML](http://flashvhtml.com)
 - [Bunny Demo](http://www.goodboydigital.com/pixijs/bunnymark)
@@ -182,7 +181,7 @@ The docs can be generated using npm:
 npm run docs
 ```
 
-The documentation uses [webdoc](https://github.com/webdoc-labs/webdoc) in combination with this template [pixi-webdoc-template](https://github.com/pixijs/pixi-webdoc-template). The configuration file can be found at [webdoc.conf.json](webdoc.conf.json)
+The documentation uses JSDocs in combination with this template [pixi-jsdoc-template](https://github.com/pixijs/pixi-jsdoc-template). The configuration file can be found at [jsdoc.conf.json](jsdoc.conf.json)
 
 ### License ###
 

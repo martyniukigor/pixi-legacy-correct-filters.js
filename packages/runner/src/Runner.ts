@@ -17,7 +17,7 @@
  *     }
  * }
  *
- * myObject.loaded.add(listener);
+ * myObject.update.add(listener);
  *
  * myObject.loaded.emit();
  * ```
@@ -36,7 +36,7 @@
  *     }
  * }
  *
- * myGame.update.add(gameObject);
+ * myGame.update.add(gameObject1);
  *
  * myGame.update.emit(time);
  * ```
@@ -132,7 +132,7 @@ export class Runner
 
     /**
      * Remove a single listener from the dispatch queue.
-     * @param {any} item - The listener that you would like to remove.
+     * @param {any} item - The listenr that you would like to remove.
      * @return {PIXI.Runner}
      */
     public remove(item: unknown): this

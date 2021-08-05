@@ -1,5 +1,5 @@
-import { AbstractRenderer, CanvasResource, RenderTexture, BaseRenderTexture } from '@pixi/core';
-import { CanvasRenderTarget, sayHello, rgb2hex, hex2string, deprecation } from '@pixi/utils';
+import { AbstractRenderer, resources } from '@pixi/core';
+import { CanvasRenderTarget, sayHello, rgb2hex, hex2string } from '@pixi/utils';
 import { CanvasMaskManager } from './utils/CanvasMaskManager';
 import { mapCanvasBlendModesToPixi } from './utils/mapCanvasBlendModesToPixi';
 import { RENDERER_TYPE, SCALE_MODES, BLEND_MODES } from '@pixi/constants';
@@ -8,10 +8,10 @@ import { Matrix } from '@pixi/math';
 
 import type { DisplayObject } from '@pixi/display';
 import type {
-    IRendererOptions,
-    IRendererPlugin,
+    IRendererOptions, IRendererPlugin,
     IRendererPlugins,
-    IRendererRenderOptions
+    RenderTexture,
+    BaseRenderTexture,
 } from '@pixi/core';
 
 const tempMatrix = new Matrix();
@@ -25,7 +25,7 @@ export interface ICanvasRendererPlugins
     [key: string]: any;
 }
 
-/*
+/**
  * Different browsers support different smoothing property names
  * this is the list of all platform props.
  */
@@ -37,9 +37,8 @@ type SmoothingEnabledProperties =
     'msImageSmoothingEnabled';
 
 /**
- * Rendering context for all browsers. This includes platform-specific
+ * Renderering context for all browsers. This includes platform-specific
  * properties that are not included in the spec for CanvasRenderingContext2D
- * @private
  */
 export interface CrossPlatformCanvasRenderingContext2D extends CanvasRenderingContext2D
 {
@@ -61,67 +60,76 @@ export interface CrossPlatformCanvasRenderingContext2D extends CanvasRenderingCo
  */
 export class CanvasRenderer extends AbstractRenderer
 {
-    /**
-     * Fired after rendering finishes.
-     * @event PIXI.CanvasRenderer#postrender
-     */
-    /**
-     * Fired before rendering starts.
-     * @event PIXI.CanvasRenderer#prerender
-     */
-
-    /** The root canvas 2d context that everything is drawn with. */
     public readonly rootContext: CrossPlatformCanvasRenderingContext2D;
-    /** The currently active canvas 2d context (could change with renderTextures) */
     public context: CrossPlatformCanvasRenderingContext2D;
-    /** Boolean flag controlling canvas refresh. */
-    public refresh = true;
-    /**
-     * Instance of a CanvasMaskManager, handles masking when using the canvas renderer.
-     * @member {PIXI.CanvasMaskManager}
-     */
-    public maskManager: CanvasMaskManager = new CanvasMaskManager(this);
-    /** The canvas property used to set the canvas smoothing property. */
-    public smoothProperty: SmoothingEnabledProperties = 'imageSmoothingEnabled';
-    /** Tracks the blend modes useful for this renderer. */
-    public readonly blendModes: string[] = mapCanvasBlendModesToPixi();
-    public renderingToScreen = false;
+    public refresh: boolean;
+    public maskManager: CanvasMaskManager;
+    public smoothProperty: SmoothingEnabledProperties;
+    public readonly blendModes: string[];
+    public renderingToScreen: boolean;
 
-    private _activeBlendMode: BLEND_MODES =null;
-    /** Projection transform, passed in render() stored here */
-    private _projTransform: Matrix = null;
+    private _activeBlendMode: BLEND_MODES;
+    private _projTransform: Matrix;
 
-    /** @private */
-    _outerBlend = false;
+    _outerBlend: boolean;
 
     /**
-     * @param options - The optional renderer parameters
+     * @param {object} [options] - The optional renderer parameters
      * @param {number} [options.width=800] - the width of the screen
      * @param {number} [options.height=600] - the height of the screen
      * @param {HTMLCanvasElement} [options.view] - the canvas to use as a view, optional
-     * @param {boolean} [options.useContextAlpha=true] - Pass-through value for canvas' context `alpha` property.
-     *   If you want to set transparency, please use `backgroundAlpha`. This option is for cases where the
-     *   canvas needs to be opaque, possibly for performance reasons on some older devices.
+     * @param {boolean} [options.transparent=false] - If the render view is transparent, default false
      * @param {boolean} [options.autoDensity=false] - Resizes renderer view in CSS pixels to allow for
      *   resolutions other than 1
      * @param {boolean} [options.antialias=false] - sets antialias
-     * @param {number} [options.resolution=PIXI.settings.RESOLUTION] - The resolution / device pixel ratio of the renderer.
+     * @param {number} [options.resolution=1] - The resolution / device pixel ratio of the renderer. The
+     *  resolution of the renderer retina would be 2.
      * @param {boolean} [options.preserveDrawingBuffer=false] - enables drawing buffer preservation,
      *  enable this if you need to call toDataUrl on the webgl context.
      * @param {boolean} [options.clearBeforeRender=true] - This sets if the renderer will clear the canvas or
      *      not before the new render pass.
      * @param {number} [options.backgroundColor=0x000000] - The background color of the rendered area
      *  (shown if not transparent).
-     * @param {number} [options.backgroundAlpha=1] - Value from 0 (fully transparent) to 1 (fully opaque).
      */
     constructor(options?: IRendererOptions)
     {
         super(RENDERER_TYPE.CANVAS, options);
 
-        this.rootContext = this.view.getContext('2d', { alpha: this.useContextAlpha }) as
+        /**
+         * The root canvas 2d context that everything is drawn with.
+         *
+         * @member {CanvasRenderingContext2D}
+         */
+        this.rootContext = this.view.getContext('2d', { alpha: this.transparent }) as
             CrossPlatformCanvasRenderingContext2D;
 
+        /**
+         * The currently active canvas 2d context (could change with renderTextures)
+         *
+         * @member {CanvasRenderingContext2D}
+         */
         this.context = this.rootContext;
+
+        /**
+         * Boolean flag controlling canvas refresh.
+         *
+         * @member {boolean}
+         */
+        this.refresh = true;
+
+        /**
+         * Instance of a CanvasMaskManager, handles masking when using the canvas renderer.
+         *
+         * @member {PIXI.CanvasMaskManager}
+         */
+        this.maskManager = new CanvasMaskManager(this);
+
+        /**
+         * The canvas property used to set the canvas smoothing property.
+         *
+         * @member {string}
+         */
+        this.smoothProperty = 'imageSmoothingEnabled';
 
         if (!this.rootContext.imageSmoothingEnabled)
         {
@@ -147,71 +155,57 @@ export class CanvasRenderer extends AbstractRenderer
 
         this.initPlugins(CanvasRenderer.__plugins);
 
+        /**
+         * Tracks the blend modes useful for this renderer.
+         *
+         * @member {object<number, string>}
+         */
+        this.blendModes = mapCanvasBlendModesToPixi();
+        this._activeBlendMode = null;
+        this._outerBlend = false;
+
+        /**
+         * Projection transform, passed in render() stored here
+         * @type {null}
+         * @private
+         */
+        this._projTransform = null;
+
+        this.renderingToScreen = false;
+
         sayHello('Canvas');
+
+        /**
+         * Fired after rendering finishes.
+         *
+         * @event PIXI.CanvasRenderer#postrender
+         */
+
+        /**
+         * Fired before rendering starts.
+         *
+         * @event PIXI.CanvasRenderer#prerender
+         */
 
         this.resize(this.options.width, this.options.height);
     }
 
     /**
-     * Renders the object to its WebGL view.
+     * Renders the object to this canvas view
      *
-     * @param displayObject - The object to be rendered.
-     * @param options - Object to use for render options.
-     * @param {PIXI.RenderTexture} [options.renderTexture] - The render texture to render to.
-     * @param {boolean} [options.clear=true] - Should the canvas be cleared before the new render.
-     * @param {PIXI.Matrix} [options.transform] - A transform to apply to the render texture before rendering.
-     * @param {boolean} [options.skipUpdateTransform=false] - Should we skip the update transform pass?
+     * @param {PIXI.DisplayObject} displayObject - The object to be rendered
+     * @param {PIXI.RenderTexture} [renderTexture] - A render texture to be rendered to.
+     *  If unset, it will render to the root context.
+     * @param {boolean} [clear=this.clearBeforeRender] - Whether to clear the canvas before drawing
+     * @param {PIXI.Matrix} [transform] - A transformation to be applied
+     * @param {boolean} [skipUpdateTransform=false] - Whether to skip the update transform
      */
-    render(displayObject: DisplayObject, options?: IRendererRenderOptions): void;
-
-    /**
-     * Please use the `option` render arguments instead.
-     *
-     * @deprecated Since 6.0.0
-     * @param displayObject - The object to be rendered.
-     * @param renderTexture - The render texture to render to.
-     * @param clear - Should the canvas be cleared before the new render.
-     * @param transform - A transform to apply to the render texture before rendering.
-     * @param skipUpdateTransform - Should we skip the update transform pass?
-     */
-    render(displayObject: DisplayObject, renderTexture?: RenderTexture | BaseRenderTexture,
-        clear?: boolean, transform?: Matrix, skipUpdateTransform?: boolean): void;
-
-    /** @ignore */
-    public render(displayObject: DisplayObject, options?: IRendererRenderOptions | RenderTexture | BaseRenderTexture): void
+    public render(displayObject: DisplayObject, renderTexture?: RenderTexture | BaseRenderTexture,
+        clear?: boolean, transform?: Matrix, skipUpdateTransform?: boolean): void
     {
         if (!this.view)
         {
             return;
-        }
-
-        let renderTexture: BaseRenderTexture | RenderTexture;
-        let clear: boolean;
-        let transform: Matrix;
-        let skipUpdateTransform: boolean;
-
-        if (options)
-        {
-            if (options instanceof RenderTexture || options instanceof BaseRenderTexture)
-            {
-                // #if _DEBUG
-                deprecation('6.0.0', 'CanvasRenderer#render arguments changed, use options instead.');
-                // #endif
-
-                /* eslint-disable prefer-rest-params */
-                renderTexture = options;
-                clear = arguments[2];
-                transform = arguments[3];
-                skipUpdateTransform = arguments[4];
-                /* eslint-enable prefer-rest-params */
-            }
-            else
-            {
-                renderTexture = options.renderTexture;
-                clear = options.clear;
-                transform = options.transform;
-                skipUpdateTransform = options.skipUpdateTransform;
-            }
         }
 
         // can be handy to know!
@@ -232,7 +226,7 @@ export class CanvasRenderer extends AbstractRenderer
                     renderTexture.height,
                     renderTexture.resolution
                 );
-                renderTexture.resource = new CanvasResource(renderTexture._canvasRenderTarget.canvas);
+                renderTexture.resource = new resources.CanvasResource(renderTexture._canvasRenderTarget.canvas);
                 renderTexture.valid = true;
             }
 
@@ -273,14 +267,14 @@ export class CanvasRenderer extends AbstractRenderer
         {
             if (this.renderingToScreen)
             {
-                context.clearRect(0, 0, this.width, this.height);
-
-                if (this.backgroundAlpha > 0)
+                if (this.transparent)
                 {
-                    context.globalAlpha = this.useContextAlpha ? this.backgroundAlpha : 1;
+                    context.clearRect(0, 0, this.width, this.height);
+                }
+                else
+                {
                     context.fillStyle = this._backgroundColorString;
                     context.fillRect(0, 0, this.width, this.height);
-                    context.globalAlpha = 1;
                 }
             }
             else
@@ -292,10 +286,8 @@ export class CanvasRenderer extends AbstractRenderer
 
                 if (clearColor[3] > 0)
                 {
-                    context.globalAlpha = this.useContextAlpha ? clearColor[3] : 1;
                     context.fillStyle = hex2string(rgb2hex(clearColor));
                     context.fillRect(0, 0, renderTexture.realWidth, renderTexture.realHeight);
-                    context.globalAlpha = 1;
                 }
             }
         }
@@ -316,12 +308,12 @@ export class CanvasRenderer extends AbstractRenderer
     }
 
     /**
-     * Sets matrix of context.
+     * sets matrix of context
      * called only from render() methods
      * takes care about resolution
-     * @param transform - world matrix of current element
-     * @param roundPixels - whether to round (tx,ty) coords
-     * @param localResolution - If specified, used instead of `renderer.resolution` for local scaling
+     * @param {PIXI.Matrix} transform - world matrix of current element
+     * @param {boolean} [roundPixels] - whether to round (tx,ty) coords
+     * @param {number} [localResolution] - If specified, used instead of `renderer.resolution` for local scaling
      */
     setContextTransform(transform: Matrix, roundPixels?: boolean, localResolution?: number): void
     {
@@ -366,20 +358,21 @@ export class CanvasRenderer extends AbstractRenderer
      * Clear the canvas of renderer.
      *
      * @param {string} [clearColor] - Clear the canvas with this color, except the canvas is transparent.
-     * @param {number} [alpha] - Alpha to apply to the background fill color.
      */
-    public clear(clearColor: string = this._backgroundColorString, alpha: number = this.backgroundAlpha): void
+    public clear(clearColor: string): void
     {
-        const { context } = this;
+        const context = this.context;
 
-        context.clearRect(0, 0, this.width, this.height);
+        clearColor = clearColor || this._backgroundColorString;
 
-        if (clearColor)
+        if (!this.transparent && clearColor)
         {
-            context.globalAlpha = this.useContextAlpha ? alpha : 1;
             context.fillStyle = clearColor;
             context.fillRect(0, 0, this.width, this.height);
-            context.globalAlpha = 1;
+        }
+        else
+        {
+            context.clearRect(0, 0, this.width, this.height);
         }
     }
 
@@ -437,12 +430,12 @@ export class CanvasRenderer extends AbstractRenderer
      *
      * @extends PIXI.AbstractRenderer#resize
      *
-     * @param desiredScreenWidth - the desired width of the screen
-     * @param desiredScreenHeight - the desired height of the screen
+     * @param {number} screenWidth - the new width of the screen
+     * @param {number} screenHeight - the new height of the screen
      */
-    public resize(desiredScreenWidth: number, desiredScreenHeight: number): void
+    public resize(screenWidth: number, screenHeight: number): void
     {
-        super.resize(desiredScreenWidth, desiredScreenHeight);
+        super.resize(screenWidth, screenHeight);
 
         // reset the scale mode.. oddly this seems to be reset when the canvas is resized.
         // surely a browser bug?? Let PixiJS fix that for you..
@@ -452,7 +445,9 @@ export class CanvasRenderer extends AbstractRenderer
         }
     }
 
-    /** Checks if blend mode has changed. */
+    /**
+     * Checks if blend mode has changed.
+     */
     invalidateBlendMode(): void
     {
         this._activeBlendMode = this.blendModes.indexOf(this.context.globalCompositeOperation);
@@ -464,7 +459,8 @@ export class CanvasRenderer extends AbstractRenderer
      * Collection of installed plugins. These are included by default in PIXI, but can be excluded
      * by creating a custom build. Consult the README for more information about creating custom
      * builds and excluding plugins.
-     * @member {object} plugins
+     * @name PIXI.CanvasRenderer#plugins
+     * @type {object}
      * @readonly
      * @property {PIXI.AccessibilityManager} accessibility Support tabbing interactive elements.
      * @property {PIXI.CanvasExtract} extract Extract image data from renderer.
@@ -475,8 +471,9 @@ export class CanvasRenderer extends AbstractRenderer
     /**
      * Adds a plugin to the renderer.
      *
-     * @param pluginName - The name of the plugin.
-     * @param ctor - The constructor function or class for the plugin.
+     * @method
+     * @param {string} pluginName - The name of the plugin.
+     * @param {Function} ctor - The constructor function or class for the plugin.
      */
     static registerPlugin(pluginName: string, ctor: ICanvasRendererPluginConstructor): void
     {

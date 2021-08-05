@@ -12,11 +12,17 @@ export class FillStyle
     /**
      * The hex color value used when coloring the Graphics object.
      *
+     * @member {number}
      * @default 0xFFFFFF
      */
     public color = 0xFFFFFF;
 
-    /** The alpha value used when filling the Graphics object. */
+    /**
+     * The alpha value used when filling the Graphics object.
+     *
+     * @member {number}
+     * @default 1
+     */
     public alpha = 1.0;
 
     /**
@@ -28,14 +34,19 @@ export class FillStyle
     public texture: Texture = Texture.WHITE;
 
     /**
-     * The transform applied to the texture.
+     * The transform aplpied to the texture.
      *
      * @member {PIXI.Matrix}
      * @default null
      */
     public matrix: Matrix = null;
 
-    /** If the current fill is visible. */
+    /**
+     * If the current fill is visible.
+     *
+     * @member {boolean}
+     * @default false
+     */
     public visible = false;
 
     constructor()

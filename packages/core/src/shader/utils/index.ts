@@ -1,13 +1,4 @@
-/**
- * @namespace PIXI.glCore
- * @private
- */
-/**
- * @namespace PIXI.glCore.shader
- * @private
- */
-export * from './compileShader';
-export * from './logProgramError';
+export * from './compileProgram';
 export * from './defaultValue';
 export * from './getMaxFragmentPrecision';
 export * from './setPrecision';

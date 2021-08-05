@@ -1,9 +1,9 @@
 {
   "name": "@pixi/mesh",
-  "version": "6.1.0",
-  "main": "dist/cjs/mesh.js",
-  "module": "dist/esm/mesh.js",
-  "bundle": "dist/browser/mesh.js",
+  "version": "5.3.10",
+  "main": "lib/mesh.js",
+  "module": "lib/mesh.es.js",
+  "bundle": "dist/mesh.js",
   "description": "Core Mesh functionality",
   "author": "Mat Groves",
   "contributors": [
@@ -21,15 +21,14 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ],
-  "peerDependencies": {
-    "@pixi/constants": "6.1.0",
-    "@pixi/core": "6.1.0",
-    "@pixi/display": "6.1.0",
-    "@pixi/math": "6.1.0",
-    "@pixi/settings": "6.1.0",
-    "@pixi/utils": "6.1.0"
+  "dependencies": {
+    "@pixi/constants": "5.3.10",
+    "@pixi/core": "5.3.10",
+    "@pixi/display": "5.3.10",
+    "@pixi/math": "5.3.10",
+    "@pixi/settings": "5.3.10",
+    "@pixi/utils": "5.3.10"
   }
 }

@@ -163,12 +163,6 @@ export enum DRAW_MODES {
  * @enum {number}
  * @property {number} RGBA=6408
  * @property {number} RGB=6407
- * @property {number} RG=33319
- * @property {number} RED=6403
- * @property {number} RGBA_INTEGER=36249
- * @property {number} RGB_INTEGER=36248
- * @property {number} RG_INTEGER=33320
- * @property {number} RED_INTEGER=36244
  * @property {number} ALPHA=6406
  * @property {number} LUMINANCE=6409
  * @property {number} LUMINANCE_ALPHA=6410
@@ -178,12 +172,6 @@ export enum DRAW_MODES {
 export enum FORMATS {
     RGBA = 6408,
     RGB = 6407,
-    RG = 33319,
-    RED = 6403,
-    RGBA_INTEGER = 36249,
-    RGB_INTEGER = 36248,
-    RG_INTEGER = 33320,
-    RED_INTEGER = 36244,
     ALPHA = 6406,
     LUMINANCE = 6409,
     LUMINANCE_ALPHA = 6410,
@@ -232,16 +220,7 @@ export enum TARGETS {
  * @property {number} UNSIGNED_SHORT_5_6_5=33635
  * @property {number} UNSIGNED_SHORT_4_4_4_4=32819
  * @property {number} UNSIGNED_SHORT_5_5_5_1=32820
- * @property {number} UNSIGNED_INT=5125
- * @property {number} UNSIGNED_INT_10F_11F_11F_REV=35899
- * @property {number} UNSIGNED_INT_2_10_10_10_REV=33640
- * @property {number} UNSIGNED_INT_24_8=34042
- * @property {number} UNSIGNED_INT_5_9_9_9_REV=35902
- * @property {number} BYTE=5120
- * @property {number} SHORT=5122
- * @property {number} INT=5124
  * @property {number} FLOAT=5126
- * @property {number} FLOAT_32_UNSIGNED_INT_24_8_REV=36269
  * @property {number} HALF_FLOAT=36193
  */
 export enum TYPES {
@@ -250,35 +229,8 @@ export enum TYPES {
     UNSIGNED_SHORT_5_6_5 = 33635,
     UNSIGNED_SHORT_4_4_4_4 = 32819,
     UNSIGNED_SHORT_5_5_5_1 = 32820,
-    UNSIGNED_INT = 5125,
-    UNSIGNED_INT_10F_11F_11F_REV = 35899,
-    UNSIGNED_INT_2_10_10_10_REV = 33640,
-    UNSIGNED_INT_24_8 = 34042,
-    UNSIGNED_INT_5_9_9_9_REV = 35902,
-    BYTE = 5120,
-    SHORT = 5122,
-    INT = 5124,
     FLOAT = 5126,
-    FLOAT_32_UNSIGNED_INT_24_8_REV = 36269,
     HALF_FLOAT = 36193,
-}
-
-/**
- * Various sampler types. Correspond to `sampler`, `isampler`, `usampler` GLSL types respectively.
- * WebGL1 works only with FLOAT.
- *
- * @memberof PIXI
- * @static
- * @name SAMPLER_TYPES
- * @enum {number}
- * @property {number} FLOAT=0
- * @property {number} INT=1
- * @property {number} UINT=2
- */
-export enum SAMPLER_TYPES {
-    FLOAT = 0,
-    INT = 1,
-    UINT = 2,
 }
 
 /**
@@ -340,14 +292,11 @@ export enum WRAP_MODES {
  * @property {number} OFF - No mipmaps
  * @property {number} POW2 - Generate mipmaps if texture dimensions are pow2
  * @property {number} ON - Always generate mipmaps
- * @property {number} ON_MANUAL - Use mipmaps, but do not auto-generate them; this is used with a resource
- *   that supports buffering each level-of-detail.
  */
 export enum MIPMAP_MODES {
     OFF,
     POW2,
     ON,
-    ON_MANUAL
 }
 
 /**
@@ -377,18 +326,15 @@ export enum ALPHA_MODES {
 }
 
 /**
- * Configure whether filter textures are cleared after binding.
- *
- * Filter textures need not be cleared if the filter does not use pixel blending. {@link CLEAR_MODES.BLIT} will detect
- * this and skip clearing as an optimization.
+ * How to clear renderTextures in filter
  *
  * @name CLEAR_MODES
  * @memberof PIXI
  * @static
  * @enum {number}
- * @property {number} BLEND - Do not clear the filter texture. The filter's output will blend on top of the output texture.
- * @property {number} CLEAR - Always clear the filter texture.
- * @property {number} BLIT - Clear only if {@link FilterSystem.forceClear} is set or if the filter uses pixel blending.
+ * @property {number} BLEND - Preserve the information in the texture, blend above
+ * @property {number} CLEAR - Must use `gl.clear` operation
+ * @property {number} BLIT - Clear or blit it, depends on device and level of paranoia
  * @property {number} NO - Alias for BLEND, same as `false` in earlier versions
  * @property {number} YES - Alias for CLEAR, same as `true` in earlier versions
  * @property {number} AUTO - Alias for BLIT
@@ -483,24 +429,4 @@ export enum MSAA_QUALITY {
     LOW = 2,
     MEDIUM = 4,
     HIGH = 8
-}
-
-/**
- * Constants for various buffer types in Pixi
- *
- * @see PIXI.BUFFER_TYPE
- *
- * @name BUFFER_TYPE
- * @memberof PIXI
- * @static
- * @enum {number}
- * @property {number} ELEMENT_ARRAY_BUFFER - buffer type for using as an index buffer
- * @property {number} ARRAY_BUFFER - buffer type for using attribute data
- * @property {number} UNIFORM_BUFFER - the buffer type is for uniform buffer objects
- */
-export enum BUFFER_TYPE {
-    ELEMENT_ARRAY_BUFFER = 34963,
-    ARRAY_BUFFER = 34962,
-    // NOT YET SUPPORTED
-    UNIFORM_BUFFER = 35345,
 }

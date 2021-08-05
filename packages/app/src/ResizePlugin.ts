@@ -25,22 +25,22 @@ export class ResizePlugin
      */
     static init(options?: IApplicationOptions): void
     {
+        /**
+         * The HTML element or window to automatically resize the
+         * renderer's view element to match width and height.
+         * @type {Window|HTMLElement}
+         * @name resizeTo
+         * @memberof PIXI.Application#
+         */
         Object.defineProperty(this, 'resizeTo',
-            /**
-             * The HTML element or window to automatically resize the
-             * renderer's view element to match width and height.
-             * @member {Window|HTMLElement}
-             * @name resizeTo
-             * @memberof PIXI.Application#
-             */
             {
                 set(dom: Window|HTMLElement)
                 {
-                    self.removeEventListener('resize', this.queueResize);
+                    window.removeEventListener('resize', this.queueResize);
                     this._resizeTo = dom;
                     if (dom)
                     {
-                        self.addEventListener('resize', this.queueResize);
+                        window.addEventListener('resize', this.queueResize);
                         this.resize();
                     }
                 },
@@ -51,12 +51,10 @@ export class ResizePlugin
             });
 
         /**
-         * Resize is throttled, so it's safe to call this multiple times per frame and it'll
+         * Resize is throttled, so it's
+         * safe to call this multiple times per frame and it'll
          * only be called once.
-         *
-         * @memberof PIXI.Application#
-         * @method queueResize
-         * @private
+         * @method PIXI.Application#queueResize
          */
         this.queueResize = (): void =>
         {
@@ -73,9 +71,7 @@ export class ResizePlugin
 
         /**
          * Cancel the resize queue.
-         *
-         * @memberof PIXI.Application#
-         * @method cancelResize
+         * @method PIXI.Application#cancelResize
          * @private
          */
         this.cancelResize = (): void =>
@@ -91,9 +87,7 @@ export class ResizePlugin
          * Execute an immediate resize on the renderer, this is not
          * throttled and can be expensive to call many times in a row.
          * Will resize only if `resizeTo` property is set.
-         *
-         * @memberof PIXI.Application#
-         * @method resize
+         * @method PIXI.Application#resize
          */
         this.resize = (): void =>
         {
@@ -109,10 +103,10 @@ export class ResizePlugin
             let height: number;
 
             // Resize to the window
-            if (this._resizeTo === self)
+            if (this._resizeTo === window)
             {
-                width = self.innerWidth;
-                height = self.innerHeight;
+                width = window.innerWidth;
+                height = window.innerHeight;
             }
             // Resize to other HTML entities
             else
@@ -134,13 +128,12 @@ export class ResizePlugin
 
     /**
      * Clean up the ticker, scoped to application
-     *
      * @static
      * @private
      */
     static destroy(): void
     {
-        self.removeEventListener('resize', this.queueResize);
+        window.removeEventListener('resize', this.queueResize);
         this.cancelResize();
         this.cancelResize = null;
         this.queueResize = null;

@@ -1,4 +1,4 @@
-export interface IPointData extends GlobalMixins.IPointData
+export interface IPointData
 {
     x: number;
     y: number;

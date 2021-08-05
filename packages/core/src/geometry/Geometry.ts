@@ -1,10 +1,10 @@
 import { Attribute } from './Attribute';
 import { Buffer } from './Buffer';
 import { interleaveTypedArrays } from './utils/interleaveTypedArrays';
-import { getBufferType } from '@pixi/utils';
+import { getBufferType } from './utils/getBufferType';
 import { Runner } from '@pixi/runner';
 
-import { BUFFER_TYPE, TYPES } from '@pixi/constants';
+import type { TYPES } from '@pixi/constants';
 import type { IArrayBuffer } from './Buffer';
 import type { Dict } from '@pixi/utils';
 
@@ -98,10 +98,10 @@ export class Geometry
     * Note: `stride` and `start` should be `undefined` if you dont know them, not 0!
     *
     * @param {String} id - the name of the attribute (matching up to a shader)
-    * @param {PIXI.Buffer|number[]} buffer - the buffer that holds the data of the attribute . You can also provide an Array and a buffer will be created from it.
+    * @param {PIXI.Buffer|number[]} [buffer] - the buffer that holds the data of the attribute . You can also provide an Array and a buffer will be created from it.
     * @param {Number} [size=0] - the size of the attribute. If you have 2 floats per vertex (eg position x and y) this would be 2
     * @param {Boolean} [normalized=false] - should the data be normalized.
-    * @param {PIXI.TYPES} [type=PIXI.TYPES.FLOAT] - what type of number is the attribute. Check {PIXI.TYPES} to see the ones available
+    * @param {Number} [type=PIXI.TYPES.FLOAT] - what type of number is the attribute. Check {PIXI.TYPES} to see the ones available
     * @param {Number} [stride] - How far apart (in floats) the start of each value is. (used for interleaving data)
     * @param {Number} [start] - How far into the array to start reading values (used for interleaving data)
     * @param {boolean} [instance=false] - Instancing flag
@@ -199,8 +199,7 @@ export class Geometry
             buffer = new Buffer(buffer);
         }
 
-        buffer.type = BUFFER_TYPE.ELEMENT_ARRAY_BUFFER;
-
+        buffer.index = true;
         this.indexBuffer = buffer;
 
         if (this.buffers.indexOf(buffer) === -1)
@@ -336,7 +335,7 @@ export class Geometry
         if (this.indexBuffer)
         {
             geometry.indexBuffer = geometry.buffers[this.buffers.indexOf(this.indexBuffer)];
-            geometry.indexBuffer.type = BUFFER_TYPE.ELEMENT_ARRAY_BUFFER;
+            geometry.indexBuffer.index = true;
         }
 
         return geometry;
@@ -400,7 +399,7 @@ export class Geometry
         if (geometry.indexBuffer)
         {
             geometryOut.indexBuffer = geometryOut.buffers[geometry.buffers.indexOf(geometry.indexBuffer)];
-            geometryOut.indexBuffer.type = BUFFER_TYPE.ELEMENT_ARRAY_BUFFER;
+            geometryOut.indexBuffer.index = true;
 
             let offset = 0;
             let stride = 0;
@@ -438,7 +437,7 @@ export class Geometry
                     geometryOut.indexBuffer.data[j + offset2] += offset;
                 }
 
-                offset += geometries[i].buffers[bufferIndexToCount].data.length / (stride);
+                offset += geometry.buffers[bufferIndexToCount].data.length / (stride);
                 offset2 += indexBufferData.length;
             }
         }

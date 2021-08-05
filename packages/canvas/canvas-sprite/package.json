@@ -1,9 +1,9 @@
 {
   "name": "@pixi/canvas-sprite",
-  "version": "6.1.0",
-  "main": "dist/cjs/canvas-sprite.js",
-  "module": "dist/esm/canvas-sprite.js",
-  "bundle": "dist/browser/canvas-sprite.js",
+  "version": "5.3.10",
+  "main": "lib/canvas-sprite.js",
+  "module": "lib/canvas-sprite.es.js",
+  "bundle": "dist/canvas-sprite.js",
   "description": "Canvas mixin for the sprite package",
   "author": "Mat Groves",
   "contributors": [
@@ -21,15 +21,13 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ],
-  "peerDependencies": {
-    "@pixi/canvas-display": "6.1.0",
-    "@pixi/canvas-renderer": "6.1.0",
-    "@pixi/constants": "6.1.0",
-    "@pixi/math": "6.1.0",
-    "@pixi/sprite": "6.1.0",
-    "@pixi/utils": "6.1.0"
+  "dependencies": {
+    "@pixi/canvas-renderer": "5.3.10",
+    "@pixi/constants": "5.3.10",
+    "@pixi/math": "5.3.10",
+    "@pixi/sprite": "5.3.10",
+    "@pixi/utils": "5.3.10"
   }
 }

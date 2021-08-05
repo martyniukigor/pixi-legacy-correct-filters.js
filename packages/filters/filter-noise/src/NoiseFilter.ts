@@ -2,14 +2,16 @@ import { Filter, defaultFilterVertex } from '@pixi/core';
 import fragment from './noise.frag';
 
 /**
- * A Noise effect filter.
- *
+ * @author Vico @vicocotea
  * original filter: https://github.com/evanw/glfx.js/blob/master/src/filters/adjust/noise.js
+ */
+
+/**
+ * A Noise effect filter.
  *
  * @class
  * @extends PIXI.Filter
  * @memberof PIXI.filters
- * @author Vico @vicocotea
  */
 export class NoiseFilter extends Filter
 {

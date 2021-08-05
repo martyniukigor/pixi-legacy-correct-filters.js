@@ -19,36 +19,13 @@ function sortChildren(a: DisplayObject, b: DisplayObject): number
 export interface Container extends GlobalMixins.Container, DisplayObject {}
 
 /**
- * Container is a general-purpose display object that holds children. It also adds built-in support for advanced
- * rendering features like masking and filtering.
+ * A Container represents a collection of display objects.
  *
- * It is the base class of all display objects that act as a container for other objects, including Graphics
- * and Sprite.
+ * It is the base class of all display objects that act as a container for other objects (like Sprites).
  *
- * ```js
- * import { BlurFilter } from '@pixi/filter-blur';
- * import { Container } from '@pixi/display';
- * import { Graphics } from '@pixi/graphics';
- * import { Sprite } from '@pixi/sprite';
- *
- * let container = new Container();
- * let sprite = Sprite.from("https://s3-us-west-2.amazonaws.com/s.cdpn.io/693612/IaUrttj.png");
- *
- * sprite.width = 512;
- * sprite.height = 512;
- *
- * // Adds a sprite as a child to this container. As a result, the sprite will be rendered whenever the container
- * // is rendered.
+ *```js
+ * let container = new PIXI.Container();
  * container.addChild(sprite);
- *
- * // Blurs whatever is rendered by the container
- * container.filters = [new BlurFilter()];
- *
- * // Only the contents within a circle at the center should be rendered onto the screen.
- * container.mask = new Graphics()
- *  .beginFill(0xffffff)
- *  .drawCircle(sprite.width / 2, sprite.height / 2, Math.min(sprite.width, sprite.height) / 2)
- *  .endFill();
  * ```
  *
  * @class
@@ -60,7 +37,6 @@ export class Container extends DisplayObject
     public readonly children: DisplayObject[];
     public sortableChildren: boolean;
     public sortDirty: boolean;
-    public parent: Container;
     public containerUpdateTransform: () => void;
 
     protected _width: number;
@@ -97,7 +73,6 @@ export class Container extends DisplayObject
 
         /**
          * Should children be sorted by zIndex at the next updateTransform call.
-         *
          * Will get automatically set to true if a new child is added, or if a child's zIndex changes.
          *
          * @member {boolean}
@@ -128,7 +103,7 @@ export class Container extends DisplayObject
      *
      * @protected
      */
-    protected onChildrenChange(_length?: number): void
+    protected onChildrenChange(_length: number): void
     {
         /* empty */
     }
@@ -412,7 +387,7 @@ export class Container extends DisplayObject
     }
 
     /**
-     * Sorts children by zIndex. Previous order is maintained for 2 children with the same zIndex.
+     * Sorts children by zIndex. Previous order is mantained for 2 children with the same zIndex.
      */
     sortChildren(): void
     {
@@ -469,8 +444,6 @@ export class Container extends DisplayObject
     /**
      * Recalculates the bounds of the container.
      *
-     * This implementation will automatically fit the children's bounds into the calculation. Each child's bounds
-     * is limited to its mask's bounds or filterArea, if any is applied.
      */
     calculateBounds(): void
     {
@@ -513,9 +486,6 @@ export class Container extends DisplayObject
     /**
      * Retrieves the local bounds of the displayObject as a rectangle object.
      *
-     * Calling `getLocalBounds` may invalidate the `_bounds` of the whole subtree below. If using it inside a render()
-     * call, it is advised to call `getBounds()` immediately after to recalculate the world bounds of the subtree.
-     *
      * @param {PIXI.Rectangle} [rect] - Optional rectangle to store the result of the bounds calculation.
      * @param {boolean} [skipChildrenUpdate=false] - Setting to `true` will stop re-calculation of children transforms,
      *  it was default behaviour of pixi 4.0-5.2 and caused many problems to users.
@@ -542,8 +512,8 @@ export class Container extends DisplayObject
     }
 
     /**
-     * Recalculates the content bounds of this object. This should be overriden to
-     * calculate the bounds of this specific object (not including children).
+     * Recalculates the bounds of the object. Override this to
+     * calculate the bounds of the specific object (not including children).
      *
      * @protected
      */
@@ -553,24 +523,7 @@ export class Container extends DisplayObject
     }
 
     /**
-     * Renders the object using the WebGL renderer.
-     *
-     * The [_render]{@link PIXI.Container#_render} method is be overriden for rendering the contents of the
-     * container itself. This `render` method will invoke it, and also invoke the `render` methods of all
-     * children afterward.
-     *
-     * If `renderable` or `visible` is false or if `worldAlpha` is not positive, this implementation will entirely
-     * skip rendering. See {@link PIXI.DisplayObject} for choosing between `renderable` or `visible`. Generally,
-     * setting alpha to zero is not recommended for purely skipping rendering.
-     *
-     * When your scene becomes large (especially when it is larger than can be viewed in a single screen), it is
-     * advised to employ **culling** to automatically skip rendering objects outside of the current screen. The
-     * [@pixi-essentials/cull]{@link https://www.npmjs.com/package/@pixi-essentials/cull} and
-     * [pixi-cull]{@link https://www.npmjs.com/package/pixi-cull} packages do this out of the box.
-     *
-     * The [renderAdvanced]{@link PIXI.Container#renderAdvanced} method is internally used when when masking or
-     * filtering is applied on a container. This does, however, break batching and can affect performance when
-     * masking and filtering is applied extensively throughout the scene graph.
+     * Renders the object using the WebGL renderer
      *
      * @param {PIXI.Renderer} renderer - The renderer
      */
@@ -764,6 +717,6 @@ export class Container extends DisplayObject
  * Will crash if there's no parent element.
  *
  * @memberof PIXI.Container#
- * @method containerUpdateTransform
+ * @function containerUpdateTransform
  */
 Container.prototype.containerUpdateTransform = Container.prototype.updateTransform;

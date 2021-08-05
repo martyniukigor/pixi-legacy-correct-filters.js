@@ -17,8 +17,8 @@ export interface IImageResourceOptions
 /**
  * Resource type for HTMLImageElement.
  * @class
- * @extends PIXI.BaseImageResource
- * @memberof PIXI
+ * @extends PIXI.resources.BaseImageResource
+ * @memberof PIXI.resources
  */
 export class ImageResource extends BaseImageResource
 {
@@ -90,7 +90,7 @@ export class ImageResource extends BaseImageResource
          * @default PIXI.settings.CREATE_IMAGE_BITMAP
          */
         this.createBitmap = (options.createBitmap !== undefined
-            ? options.createBitmap : settings.CREATE_IMAGE_BITMAP) && !!self.createImageBitmap;
+            ? options.createBitmap : settings.CREATE_IMAGE_BITMAP) && !!window.createImageBitmap;
 
         /**
          * Controls texture alphaMode field
@@ -101,6 +101,12 @@ export class ImageResource extends BaseImageResource
          * @readonly
          */
         this.alphaMode = typeof options.alphaMode === 'number' ? options.alphaMode : null;
+
+        if ((options as any).premultiplyAlpha !== undefined)
+        {
+            // triggers deprecation
+            (this as any).premultiplyAlpha = (options as any).premultiplyAlpha;
+        }
 
         /**
          * The ImageBitmap element created for HTMLImageElement
@@ -202,24 +208,16 @@ export class ImageResource extends BaseImageResource
         {
             return this._process;
         }
-        if (this.bitmap !== null || !self.createImageBitmap)
+        if (this.bitmap !== null || !window.createImageBitmap)
         {
             return Promise.resolve(this);
         }
 
-        const createImageBitmap = self.createImageBitmap as any;
-        const cors = !source.crossOrigin || source.crossOrigin === 'anonymous';
-
-        this._process = fetch(source.src,
+        this._process = (window.createImageBitmap as any)(source,
+            0, 0, source.width, source.height,
             {
-                mode: cors ? 'cors' : 'no-cors'
+                premultiplyAlpha: this.alphaMode === ALPHA_MODES.UNPACK ? 'premultiply' : 'none',
             })
-            .then((r) => r.blob())
-            .then((blob) => createImageBitmap(blob,
-                0, 0, source.width, source.height,
-                {
-                    premultiplyAlpha: this.alphaMode === ALPHA_MODES.UNPACK ? 'premultiply' : 'none',
-                }))
             .then((bitmap: ImageBitmap) =>
             {
                 if (this.destroyed)

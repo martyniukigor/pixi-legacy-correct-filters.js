@@ -3,7 +3,7 @@ import { settings } from '@pixi/settings';
 import { BlurFilterPass } from './BlurFilterPass';
 import { CLEAR_MODES } from '@pixi/constants';
 
-import type { FilterSystem, RenderTexture } from '@pixi/core';
+import type { RenderTexture, systems } from '@pixi/core';
 import type { BLEND_MODES } from '@pixi/constants';
 
 /**
@@ -45,12 +45,12 @@ export class BlurFilter extends Filter
     /**
      * Applies the filter.
      *
-     * @param {PIXI.FilterSystem} filterManager - The manager.
+     * @param {PIXI.systems.FilterSystem} filterManager - The manager.
      * @param {PIXI.RenderTexture} input - The input target.
      * @param {PIXI.RenderTexture} output - The output target.
      * @param {PIXI.CLEAR_MODES} clearMode - How to clear
      */
-    apply(filterManager: FilterSystem, input: RenderTexture, output: RenderTexture, clearMode: CLEAR_MODES): void
+    apply(filterManager: systems.FilterSystem, input: RenderTexture, output: RenderTexture, clearMode: CLEAR_MODES): void
     {
         const xStrength = Math.abs(this.blurXFilter.strength);
         const yStrength = Math.abs(this.blurYFilter.strength);
@@ -104,7 +104,7 @@ export class BlurFilter extends Filter
     }
 
     /**
-     * Sets the number of passes for blur. More passes means higher quality bluring.
+     * Sets the number of passes for blur. More passes means higher quaility bluring.
      *
      * @member {number}
      * @default 1

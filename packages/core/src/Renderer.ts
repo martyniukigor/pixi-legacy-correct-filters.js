@@ -1,5 +1,5 @@
 import { AbstractRenderer } from './AbstractRenderer';
-import { sayHello, isWebGLSupported, deprecation } from '@pixi/utils';
+import { sayHello, isWebGLSupported } from '@pixi/utils';
 import { MaskSystem } from './mask/MaskSystem';
 import { StencilSystem } from './mask/StencilSystem';
 import { ScissorSystem } from './mask/ScissorSystem';
@@ -14,19 +14,17 @@ import { ShaderSystem } from './shader/ShaderSystem';
 import { ContextSystem } from './context/ContextSystem';
 import { BatchSystem } from './batch/BatchSystem';
 import { TextureGCSystem } from './textures/TextureGCSystem';
-import { MSAA_QUALITY, RENDERER_TYPE } from '@pixi/constants';
+import { RENDERER_TYPE } from '@pixi/constants';
 import { UniformGroup } from './shader/UniformGroup';
-import { Matrix, Rectangle } from '@pixi/math';
+import { Matrix } from '@pixi/math';
 import { Runner } from '@pixi/runner';
-import { BufferSystem } from './geometry/BufferSystem';
-import { RenderTexture } from './renderTexture/RenderTexture';
 
-import type { SCALE_MODES } from '@pixi/constants';
-import type { IRendererOptions, IRendererPlugins, IRendererRenderOptions,
-    IGenerateTextureOptions } from './AbstractRenderer';
-import type { ISystemConstructor } from './ISystem';
+import type { IRendererOptions, IRendererPlugins } from './AbstractRenderer';
+import type { RenderTexture } from './renderTexture/RenderTexture';
+import type { DisplayObject } from '@pixi/display';
+import type { System } from './System';
 import type { IRenderingContext } from './IRenderingContext';
-import type { IRenderableObject } from './IRenderableObject';
+import type { Extract } from '@pixi/extract';
 
 export interface IRendererPluginConstructor {
     new (renderer: Renderer, options?: any): IRendererPlugin;
@@ -44,29 +42,6 @@ export interface IRendererPlugin {
  * This renderer works by automatically managing WebGLBatchesm, so no need for Sprite Batches or Sprite Clouds.
  * Don't forget to add the view to your DOM or you will not see anything!
  *
- * Renderer is composed of systems that manage specific tasks. The following systems are added by default
- * whenever you create a renderer:
- *
- * | System                               | Description                                                                   |
- * | ------------------------------------ | ----------------------------------------------------------------------------- |
- * | {@link PIXI.BatchSystem}             | This manages object renderers that defer rendering until a flush.             |
- * | {@link PIXI.ContextSystem}           | This manages the WebGL context and extensions.                                |
- * | {@link PIXI.EventSystem}             | This manages UI events.                                                       |
- * | {@link PIXI.FilterSystem}            | This manages the filtering pipeline for post-processing effects.              |
- * | {@link PIXI.FramebufferSystem}       | This manages framebuffers, which are used for offscreen rendering.            |
- * | {@link PIXI.GeometrySystem}          | This manages geometries & buffers, which are used to draw object meshes.      |
- * | {@link PIXI.MaskSystem}              | This manages masking operations.                                              |
- * | {@link PIXI.ProjectionSystem}        | This manages the `projectionMatrix`, used by shaders to get NDC coordinates.  |
- * | {@link PIXI.RenderTextureSystem}     | This manages render-textures, which are an abstraction over framebuffers.     |
- * | {@link PIXI.ScissorSystem}           | This handles scissor masking, and is used internally by {@link MaskSystem}    |
- * | {@link PIXI.ShaderSystem}            | This manages shaders, programs that run on the GPU to calculate 'em pixels.   |
- * | {@link PIXI.StateSystem}             | This manages the WebGL state variables like blend mode, depth testing, etc.   |
- * | {@link PIXI.StencilSystem}           | This handles stencil masking, and is used internally by {@link MaskSystem}    |
- * | {@link PIXI.TextureSystem}           | This manages textures and their resources on the GPU.                         |
- * | {@link PIXI.TextureGCSystem}         | This will automatically remove textures from the GPU if they are not used.    |
- *
- * The breadth of the API surface provided by the renderer is contained within these systems.
- *
  * @class
  * @memberof PIXI
  * @extends PIXI.AbstractRenderer
@@ -77,14 +52,13 @@ export class Renderer extends AbstractRenderer
     public globalUniforms: UniformGroup;
     public CONTEXT_UID: number;
     public renderingToScreen: boolean;
-    public multisample: MSAA_QUALITY;
+    public extract: Extract;
     // systems
     public mask: MaskSystem;
     public context: ContextSystem;
     public state: StateSystem;
     public shader: ShaderSystem;
     public texture: TextureSystem;
-    public buffer: BufferSystem;
     public geometry: GeometrySystem;
     public framebuffer: FramebufferSystem;
     public scissor: ScissorSystem;
@@ -104,7 +78,7 @@ export class Renderer extends AbstractRenderer
      * @static
      * @private
      */
-    static create(options?: IRendererOptions): AbstractRenderer
+    static create(options: IRendererOptions): AbstractRenderer
     {
         if (isWebGLSupported())
         {
@@ -115,18 +89,17 @@ export class Renderer extends AbstractRenderer
     }
 
     /**
-     * @param [options] - The optional renderer parameters.
+     * @param {object} [options] - The optional renderer parameters.
      * @param {number} [options.width=800] - The width of the screen.
      * @param {number} [options.height=600] - The height of the screen.
      * @param {HTMLCanvasElement} [options.view] - The canvas to use as a view, optional.
-     * @param {boolean} [options.useContextAlpha=true] - Pass-through value for canvas' context `alpha` property.
-     *   If you want to set transparency, please use `backgroundAlpha`. This option is for cases where the
-     *   canvas needs to be opaque, possibly for performance reasons on some older devices.
+     * @param {boolean} [options.transparent=false] - If the render view is transparent.
      * @param {boolean} [options.autoDensity=false] - Resizes renderer view in CSS pixels to allow for
      *   resolutions other than 1.
      * @param {boolean} [options.antialias=false] - Sets antialias. If not available natively then FXAA
      *  antialiasing is used.
-     * @param {number} [options.resolution=PIXI.settings.RESOLUTION] - The resolution / device pixel ratio of the renderer.
+     * @param {number} [options.resolution=1] - The resolution / device pixel ratio of the renderer.
+     *  The resolution of the renderer retina would be 2.
      * @param {boolean} [options.clearBeforeRender=true] - This sets if the renderer will clear
      *  the canvas or not before the new render pass. If you wish to set this to false, you *must* set
      *  preserveDrawingBuffer to `true`.
@@ -134,7 +107,6 @@ export class Renderer extends AbstractRenderer
      *  enable this if you need to call toDataUrl on the WebGL context.
      * @param {number} [options.backgroundColor=0x000000] - The background color of the rendered area
      *  (shown if not transparent).
-     * @param {number} [options.backgroundAlpha=1] - Value from 0 (fully transparent) to 1 (fully opaque).
      * @param {string} [options.powerPreference] - Parameter passed to WebGL context, set to "high-performance"
      *  for devices with dual graphics card.
      * @param {object} [options.context] - If WebGL context already exists, all parameters must be taken from it.
@@ -157,11 +129,13 @@ export class Renderer extends AbstractRenderer
 
         this.CONTEXT_UID = 0;
 
+        // TODO legacy!
+
         /**
          * Internal signal instances of **runner**, these
          * are assigned to each system created.
          * @see PIXI.Runner
-         * @name runners
+         * @name PIXI.Renderer#runners
          * @private
          * @type {object}
          * @readonly
@@ -183,8 +157,6 @@ export class Renderer extends AbstractRenderer
             resize: new Runner('resize'),
         };
 
-        this.runners.contextChange.add(this);
-
         /**
          * Global uniforms
          * @member {PIXI.UniformGroup}
@@ -195,46 +167,39 @@ export class Renderer extends AbstractRenderer
 
         /**
          * Mask system instance
-         * @member {PIXI.MaskSystem} mask
+         * @member {PIXI.systems.MaskSystem} mask
          * @memberof PIXI.Renderer#
          * @readonly
          */
         this.addSystem(MaskSystem, 'mask')
             /**
              * Context system instance
-             * @member {PIXI.ContextSystem} context
+             * @member {PIXI.systems.ContextSystem} context
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(ContextSystem, 'context')
             /**
              * State system instance
-             * @member {PIXI.StateSystem} state
+             * @member {PIXI.systems.StateSystem} state
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(StateSystem, 'state')
             /**
              * Shader system instance
-             * @member {PIXI.ShaderSystem} shader
+             * @member {PIXI.systems.ShaderSystem} shader
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(ShaderSystem, 'shader')
             /**
              * Texture system instance
-             * @member {PIXI.TextureSystem} texture
+             * @member {PIXI.systems.TextureSystem} texture
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(TextureSystem, 'texture')
-            /**
-             * Geometry system instance
-             * @member {PIXI.systems.BufferSystem} buffer
-             * @memberof PIXI.Renderer#
-             * @readonly
-             */
-            .addSystem(BufferSystem, 'buffer')
             /**
              * Geometry system instance
              * @member {PIXI.systems.GeometrySystem} geometry
@@ -244,49 +209,49 @@ export class Renderer extends AbstractRenderer
             .addSystem(GeometrySystem, 'geometry')
             /**
              * Framebuffer system instance
-             * @member {PIXI.FramebufferSystem} framebuffer
+             * @member {PIXI.systems.FramebufferSystem} framebuffer
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(FramebufferSystem, 'framebuffer')
             /**
              * Scissor system instance
-             * @member {PIXI.ScissorSystem} scissor
+             * @member {PIXI.systems.ScissorSystem} scissor
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(ScissorSystem, 'scissor')
             /**
              * Stencil system instance
-             * @member {PIXI.StencilSystem} stencil
+             * @member {PIXI.systems.StencilSystem} stencil
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(StencilSystem, 'stencil')
             /**
              * Projection system instance
-             * @member {PIXI.ProjectionSystem} projection
+             * @member {PIXI.systems.ProjectionSystem} projection
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(ProjectionSystem, 'projection')
             /**
              * Texture garbage collector system instance
-             * @member {PIXI.TextureGCSystem} textureGC
+             * @member {PIXI.systems.TextureGCSystem} textureGC
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(TextureGCSystem, 'textureGC')
             /**
              * Filter system instance
-             * @member {PIXI.FilterSystem} filter
+             * @member {PIXI.systems.FilterSystem} filter
              * @memberof PIXI.Renderer#
              * @readonly
              */
             .addSystem(FilterSystem, 'filter')
             /**
              * RenderTexture system instance
-             * @member {PIXI.RenderTextureSystem} renderTexture
+             * @member {PIXI.systems.RenderTextureSystem} renderTexture
              * @memberof PIXI.Renderer#
              * @readonly
              */
@@ -294,7 +259,7 @@ export class Renderer extends AbstractRenderer
 
             /**
              * Batch system instance
-             * @member {PIXI.BatchSystem} batch
+             * @member {PIXI.systems.BatchSystem} batch
              * @memberof PIXI.Renderer#
              * @readonly
              */
@@ -303,13 +268,6 @@ export class Renderer extends AbstractRenderer
         this.initPlugins(Renderer.__plugins);
 
         /**
-         * The number of msaa samples of the canvas.
-         * @member {PIXI.MSAA_QUALITY}
-         * @readonly
-         */
-        this.multisample = undefined;
-
-        /*
          * The options passed in to create a new WebGL context.
          */
         if (options.context)
@@ -319,9 +277,9 @@ export class Renderer extends AbstractRenderer
         else
         {
             this.context.initFromOptions({
-                alpha: !!this.useContextAlpha,
+                alpha: !!this.transparent,
                 antialias: options.antialias,
-                premultipliedAlpha: this.useContextAlpha && this.useContextAlpha !== 'notMultiplied',
+                premultipliedAlpha: this.transparent && this.transparent !== 'notMultiplied',
                 stencil: true,
                 preserveDrawingBuffer: options.preserveDrawingBuffer,
                 powerPreference: this.options.powerPreference,
@@ -341,62 +299,22 @@ export class Renderer extends AbstractRenderer
         this.resize(this.options.width, this.options.height);
     }
 
-    protected contextChange(): void
-    {
-        const gl = this.gl;
-
-        let samples;
-
-        if (this.context.webGLVersion === 1)
-        {
-            const framebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-            samples = gl.getParameter(gl.SAMPLES);
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        }
-        else
-        {
-            const framebuffer = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
-
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-
-            samples = gl.getParameter(gl.SAMPLES);
-
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-        }
-
-        if (samples >= MSAA_QUALITY.HIGH)
-        {
-            this.multisample = MSAA_QUALITY.HIGH;
-        }
-        else if (samples >= MSAA_QUALITY.MEDIUM)
-        {
-            this.multisample = MSAA_QUALITY.MEDIUM;
-        }
-        else if (samples >= MSAA_QUALITY.LOW)
-        {
-            this.multisample = MSAA_QUALITY.LOW;
-        }
-        else
-        {
-            this.multisample = MSAA_QUALITY.NONE;
-        }
-    }
-
     /**
      * Add a new system to the renderer.
-     * @param ClassRef - Class reference
-     * @param [name] - Property name for system, if not specified
+     * @param {Function} ClassRef - Class reference
+     * @param {string} [name] - Property name for system, if not specified
      *        will use a static `name` property on the class itself. This
      *        name will be assigned as s property on the Renderer so make
      *        sure it doesn't collide with properties on Renderer.
      * @return {PIXI.Renderer} Return instance of renderer
      */
-    addSystem(ClassRef: ISystemConstructor, name: string): this
+    addSystem<T extends System>(ClassRef: { new(renderer: Renderer): T}, name: string): this
     {
+        if (!name)
+        {
+            name = ClassRef.name;
+        }
+
         const system = new ClassRef(this);
 
         if ((this as any)[name])
@@ -434,64 +352,17 @@ export class Renderer extends AbstractRenderer
     }
 
     /**
-     * Renders the object to its WebGL view.
+     * Renders the object to its WebGL view
      *
-     * @param displayObject - The object to be rendered.
-     * @param {object} [options] - Object to use for render options.
-     * @param {PIXI.RenderTexture} [options.renderTexture] - The render texture to render to.
-     * @param {boolean} [options.clear=true] - Should the canvas be cleared before the new render.
-     * @param {PIXI.Matrix} [options.transform] - A transform to apply to the render texture before rendering.
-     * @param {boolean} [options.skipUpdateTransform=false] - Should we skip the update transform pass?
+     * @param {PIXI.DisplayObject} displayObject - The object to be rendered.
+     * @param {PIXI.RenderTexture} [renderTexture] - The render texture to render to.
+     * @param {boolean} [clear=true] - Should the canvas be cleared before the new render.
+     * @param {PIXI.Matrix} [transform] - A transform to apply to the render texture before rendering.
+     * @param {boolean} [skipUpdateTransform=false] - Should we skip the update transform pass?
      */
-    render(displayObject: IRenderableObject, options?: IRendererRenderOptions): void;
-
-    /**
-     * Please use the `option` render arguments instead.
-     *
-     * @deprecated Since 6.0.0
-     * @param displayObject
-     * @param renderTexture
-     * @param clear
-     * @param transform
-     * @param skipUpdateTransform
-     */
-    render(displayObject: IRenderableObject, renderTexture?: RenderTexture,
-        clear?: boolean, transform?: Matrix, skipUpdateTransform?: boolean): void;
-
-    /**
-     * @ignore
-     */
-    render(displayObject: IRenderableObject, options?: IRendererRenderOptions | RenderTexture): void
+    render(displayObject: DisplayObject, renderTexture?: RenderTexture,
+        clear?: boolean, transform?: Matrix, skipUpdateTransform?: boolean): void
     {
-        let renderTexture: RenderTexture;
-        let clear: boolean;
-        let transform: Matrix;
-        let skipUpdateTransform: boolean;
-
-        if (options)
-        {
-            if (options instanceof RenderTexture)
-            {
-                // #if _DEBUG
-                deprecation('6.0.0', 'Renderer#render arguments changed, use options instead.');
-                // #endif
-
-                /* eslint-disable prefer-rest-params */
-                renderTexture = options;
-                clear = arguments[2];
-                transform = arguments[3];
-                skipUpdateTransform = arguments[4];
-                /* eslint-enable prefer-rest-params */
-            }
-            else
-            {
-                renderTexture = options.renderTexture;
-                clear = options.clear;
-                transform = options.transform;
-                skipUpdateTransform = options.skipUpdateTransform;
-            }
-        }
-
         // can be handy to know!
         this.renderingToScreen = !renderTexture;
 
@@ -549,31 +420,16 @@ export class Renderer extends AbstractRenderer
     }
 
     /**
-     * @override
-     * @ignore
-     */
-    generateTexture(displayObject: IRenderableObject,
-        options: IGenerateTextureOptions | SCALE_MODES = {},
-        resolution?: number, region?: Rectangle): RenderTexture
-    {
-        const renderTexture = super.generateTexture(displayObject, options as any, resolution, region);
-
-        this.framebuffer.blit();
-
-        return renderTexture;
-    }
-
-    /**
      * Resizes the WebGL view to the specified width and height.
      *
-     * @param desiredScreenWidth - The desired width of the screen.
-     * @param desiredScreenHeight - The desired height of the screen.
+     * @param {number} screenWidth - The new width of the screen.
+     * @param {number} screenHeight - The new height of the screen.
      */
-    resize(desiredScreenWidth: number, desiredScreenHeight: number): void
+    resize(screenWidth: number, screenHeight: number): void
     {
-        super.resize(desiredScreenWidth, desiredScreenHeight);
+        super.resize(screenWidth, screenHeight);
 
-        this.runners.resize.emit(this.screen.height, this.screen.width);
+        this.runners.resize.emit(screenWidth, screenHeight);
     }
 
     /**
@@ -600,7 +456,7 @@ export class Renderer extends AbstractRenderer
     /**
      * Removes everything from the renderer (event listeners, spritebatch, etc...)
      *
-     * @param [removeView=false] - Removes the Canvas element from the DOM.
+     * @param {boolean} [removeView=false] - Removes the Canvas element from the DOM.
      *  See: https://github.com/pixijs/pixi.js/issues/2233
      */
     destroy(removeView?: boolean): void
@@ -620,43 +476,25 @@ export class Renderer extends AbstractRenderer
     }
 
     /**
-     * Please use `plugins.extract` instead.
-     * @member {PIXI.Extract} extract
-     * @deprecated since 6.0.0
-     * @readonly
-     */
-    public get extract(): any
-    {
-        // #if _DEBUG
-        deprecation('6.0.0', 'Renderer#extract has been deprecated, please use Renderer#plugins.extract instead.');
-        // #endif
-
-        return this.plugins.extract;
-    }
-
-    /**
      * Collection of installed plugins. These are included by default in PIXI, but can be excluded
      * by creating a custom build. Consult the README for more information about creating custom
      * builds and excluding plugins.
-     * @name plugins
+     * @name PIXI.Renderer#plugins
      * @type {object}
      * @readonly
      * @property {PIXI.AccessibilityManager} accessibility Support tabbing interactive elements.
      * @property {PIXI.Extract} extract Extract image data from renderer.
      * @property {PIXI.InteractionManager} interaction Handles mouse, touch and pointer events.
-     * @property {PIXI.ParticleRenderer} particle Renderer for ParticleContainer objects.
      * @property {PIXI.Prepare} prepare Pre-render display objects.
-     * @property {PIXI.BatchRenderer} batch Batching of Sprite, Graphics and Mesh objects.
-     * @property {PIXI.TilingSpriteRenderer} tilingSprite Renderer for TilingSprite objects.
      */
-    static __plugins: IRendererPlugins;
 
+    static __plugins: IRendererPlugins;
     /**
      * Adds a plugin to the renderer.
      *
      * @method
-     * @param pluginName - The name of the plugin.
-     * @param ctor - The constructor function or class for the plugin.
+     * @param {string} pluginName - The name of the plugin.
+     * @param {Function} ctor - The constructor function or class for the plugin.
      */
     static registerPlugin(pluginName: string, ctor: IRendererPluginConstructor): void
     {

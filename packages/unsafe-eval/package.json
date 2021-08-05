@@ -1,9 +1,9 @@
 {
   "name": "@pixi/unsafe-eval",
-  "version": "6.1.0",
-  "main": "dist/cjs/unsafe-eval.js",
-  "module": "dist/esm/unsafe-eval.js",
-  "bundle": "dist/browser/unsafe-eval.js",
+  "version": "5.3.10",
+  "main": "lib/unsafe-eval.js",
+  "module": "lib/unsafe-eval.es.js",
+  "bundle": "dist/unsafe-eval.js",
   "bundleInput": "src/bundle.ts",
   "standalone": true,
   "description": "Adds support for environments that disallow support of new Function",
@@ -20,10 +20,9 @@
   },
   "files": [
     "lib/",
-    "dist/",
-    "*.d.ts"
+    "dist/"
   ],
-  "peerDependencies": {
-    "@pixi/core": "6.1.0"
+  "dependencies": {
+    "@pixi/core": "5.3.10"
   }
 }

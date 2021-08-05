@@ -7,8 +7,7 @@ import { Application } from '@pixi/app';
 import { Renderer, BatchRenderer } from '@pixi/core';
 import { Extract } from '@pixi/extract';
 import { Loader, AppLoaderPlugin } from '@pixi/loaders';
-import { CompressedTextureLoader, DDSLoader, KTXLoader } from '@pixi/compressed-textures';
-import { ParticleRenderer } from '@pixi/particle-container';
+import { ParticleRenderer } from '@pixi/particles';
 import { Prepare } from '@pixi/prepare';
 import { SpritesheetLoader } from '@pixi/spritesheet';
 import { TilingSpriteRenderer } from '@pixi/sprite-tiling';
@@ -24,6 +23,11 @@ import '@pixi/mixin-cache-as-bitmap';
 import '@pixi/mixin-get-child-by-name';
 import '@pixi/mixin-get-global-position';
 
+// Export deprecations so Rollup can call it
+// in the footer after global is defined
+// other module must call this manually
+import { useDeprecated } from './useDeprecated';
+
 // Install renderer plugins
 Renderer.registerPlugin('accessibility', AccessibilityManager);
 Renderer.registerPlugin('extract', Extract);
@@ -33,14 +37,9 @@ Renderer.registerPlugin('prepare', Prepare);
 Renderer.registerPlugin('batch', BatchRenderer);
 Renderer.registerPlugin('tilingSprite', TilingSpriteRenderer);
 
-// Install loader plugins
 Loader.registerPlugin(BitmapFontLoader);
-Loader.registerPlugin(CompressedTextureLoader);
-Loader.registerPlugin(DDSLoader);
-Loader.registerPlugin(KTXLoader);
 Loader.registerPlugin(SpritesheetLoader);
 
-// Install application plugins
 Application.registerPlugin(TickerPlugin);
 Application.registerPlugin(AppLoaderPlugin);
 
@@ -53,7 +52,7 @@ Application.registerPlugin(AppLoaderPlugin);
  * @name VERSION
  * @type {string}
  */
-export const VERSION = '$_VERSION';
+export const VERSION = '__VERSION__';
 
 /**
  * @namespace PIXI
@@ -100,7 +99,6 @@ export const filters = {
 export * from '@pixi/accessibility';
 export * from '@pixi/app';
 export * from '@pixi/constants';
-export * from '@pixi/compressed-textures';
 export * from '@pixi/core';
 export * from '@pixi/display';
 export * from '@pixi/extract';
@@ -110,7 +108,7 @@ export * from '@pixi/interaction';
 export * from '@pixi/math';
 export * from '@pixi/mesh';
 export * from '@pixi/mesh-extras';
-export * from '@pixi/particle-container';
+export * from '@pixi/particles';
 export * from '@pixi/prepare';
 export * from '@pixi/runner';
 export * from '@pixi/sprite';
@@ -121,4 +119,7 @@ export * from '@pixi/text';
 export * from '@pixi/text-bitmap';
 export * from '@pixi/ticker';
 export * from '@pixi/settings';
-export { utils };
+export {
+    utils,
+    useDeprecated,
+};

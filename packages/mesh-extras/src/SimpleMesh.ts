@@ -24,7 +24,7 @@ export class SimpleMesh extends Mesh
      * @param {number} [drawMode] - the drawMode, can be any of the Mesh.DRAW_MODES consts
      */
     constructor(
-        texture: Texture = Texture.EMPTY,
+        texture = Texture.EMPTY,
         vertices?: IArrayBuffer,
         uvs?: IArrayBuffer,
         indices?: IArrayBuffer,

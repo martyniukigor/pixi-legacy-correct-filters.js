@@ -1,8 +1,7 @@
 import type { Graphics } from '@pixi/graphics';
 
 /**
- * Draw Rectangle with fillet corners. This is much like rounded rectangle
- * however it support negative numbers as well for the corner radius.
+ * Draw Rectangle with fillet corners.
  *
  * _Note: Only available with **@pixi/graphics-extras**._
  *
@@ -11,7 +10,7 @@ import type { Graphics } from '@pixi/graphics';
  * @param {number} y - Upper right corner of rect
  * @param {number} width - Width of rect
  * @param {number} height - Height of rect
- * @param {number} fillet - accept negative or positive values
+ * @param {number} fillet - non-zero real number, size of corner cutout
  * @return {PIXI.Graphics} Returns self.
  */
 export function drawFilletRect(this: Graphics,
@@ -21,26 +20,33 @@ export function drawFilletRect(this: Graphics,
     height: number,
     fillet: number): Graphics
 {
-    if (fillet === 0)
+    if (fillet <= 0)
     {
         return this.drawRect(x, y, width, height);
     }
 
-    const maxFillet = Math.min(width, height) / 2;
-    const inset = Math.min(maxFillet, Math.max(-maxFillet, fillet));
+    const inset = Math.min(fillet, Math.min(width, height) / 2);
     const right = x + width;
     const bottom = y + height;
-    const dir = inset < 0 ? -inset : 0;
-    const size = Math.abs(inset);
+    const points = [
+        x + inset, y,
+        right - inset, y,
+        right, y + inset,
+        right, bottom - inset,
+        right - inset, bottom,
+        x + inset, bottom,
+        x, bottom - inset,
+        x, y + inset,
+    ];
 
-    return this
-        .moveTo(x, y + size)
-        .arcTo(x + dir, y + dir, x + size, y, size)
-        .lineTo(right - size, y)
-        .arcTo(right - dir, y + dir, right, y + size, size)
-        .lineTo(right, bottom - size)
-        .arcTo(right - dir, bottom - dir, x + width - size, bottom, size)
-        .lineTo(x + size, bottom)
-        .arcTo(x + dir, bottom - dir, x, bottom - size, size)
-        .closePath();
+    // Remove overlapping points
+    for (let i = points.length - 1; i >= 2; i -= 2)
+    {
+        if (points[i] === points[i - 2] && points[i - 1] === points[i - 3])
+        {
+            points.splice(i - 1, 2);
+        }
+    }
+
+    return this.drawPolygon(points);
 }

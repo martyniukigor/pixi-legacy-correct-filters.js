@@ -12,12 +12,12 @@ import type { GLTexture } from '../GLTexture';
 /**
  * Buffer resource with data of typed array.
  * @class
- * @extends PIXI.Resource
- * @memberof PIXI
+ * @extends PIXI.resources.Resource
+ * @memberof PIXI.resources
  */
 export class BufferResource extends Resource
 {
-    data: Float32Array|Uint8Array|Uint16Array|Uint32Array;
+    data: Float32Array|Uint8Array|Uint32Array;
 
     /**
      * @param {Float32Array|Uint8Array|Uint32Array} source - Source buffer
@@ -25,7 +25,7 @@ export class BufferResource extends Resource
      * @param {number} options.width - Width of the texture
      * @param {number} options.height - Height of the texture
      */
-    constructor(source: Float32Array|Uint8Array|Uint16Array|Uint32Array, options: ISize)
+    constructor(source: Float32Array|Uint8Array|Uint32Array, options: ISize)
     {
         const { width, height } = options || {};
 
@@ -58,34 +58,31 @@ export class BufferResource extends Resource
 
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, baseTexture.alphaMode === ALPHA_MODES.UNPACK);
 
-        const width = baseTexture.realWidth;
-        const height = baseTexture.realHeight;
-
-        if (glTexture.width === width && glTexture.height === height)
+        if (glTexture.width === baseTexture.width && glTexture.height === baseTexture.height)
         {
             gl.texSubImage2D(
                 baseTexture.target,
                 0,
                 0,
                 0,
-                width,
-                height,
+                baseTexture.width,
+                baseTexture.height,
                 baseTexture.format,
-                glTexture.type,
+                baseTexture.type,
                 this.data
             );
         }
         else
         {
-            glTexture.width = width;
-            glTexture.height = height;
+            glTexture.width = baseTexture.width;
+            glTexture.height = baseTexture.height;
 
             gl.texImage2D(
                 baseTexture.target,
                 0,
                 glTexture.internalFormat,
-                width,
-                height,
+                baseTexture.width,
+                baseTexture.height,
                 0,
                 baseTexture.format,
                 glTexture.type,

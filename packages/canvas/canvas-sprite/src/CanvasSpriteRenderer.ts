@@ -12,7 +12,7 @@ const canvasRenderWorldTransform = new Matrix();
  * @memberof PIXI
  */
 
-/*
+/**
  * @author Mat Groves
  *
  * Big thanks to the very clever Matt DesLauriers <mattdesl> https://github.com/mattdesl/
@@ -33,10 +33,11 @@ const canvasRenderWorldTransform = new Matrix();
  */
 export class CanvasSpriteRenderer
 {
-    /** A reference to the current renderer */
     protected renderer: CanvasRenderer;
 
-    /** @param renderer - A reference to the current renderer */
+    /**
+     * @param {PIXI.Renderer} renderer -The renderer sprite this batch works for.
+     */
     constructor(renderer: CanvasRenderer)
     {
         this.renderer = renderer;
@@ -45,7 +46,7 @@ export class CanvasSpriteRenderer
     /**
      * Renders the sprite object.
      *
-     * @param sprite - the sprite to render when using this spritebatch
+     * @param {PIXI.Sprite} sprite - the sprite to render when using this spritebatch
      */
     render(sprite: Sprite): void
     {
@@ -178,7 +179,10 @@ export class CanvasSpriteRenderer
         renderer.setBlendMode(BLEND_MODES.NORMAL);
     }
 
-    /** destroy the sprite object */
+    /**
+     * destroy the sprite object.
+     *
+     */
     destroy(): void
     {
         this.renderer = null;

@@ -1,5 +1,6 @@
 import { Loader } from './Loader';
 
+import type { IApplicationOptions } from '@pixi/app';
 /**
  * Application plugin for supporting loader option. Installing the LoaderPlugin
  * is not necessary if using **pixi.js** or **pixi.js-legacy**.
@@ -13,13 +14,12 @@ import { Loader } from './Loader';
 export class AppLoaderPlugin
 {
     public static loader: Loader;
-
     /**
      * Called on application constructor
      * @param {object} options
      * @private
      */
-    static init(options?: GlobalMixins.IApplicationOptions): void
+    static init(options?: IApplicationOptions): void
     {
         options = Object.assign({
             sharedLoader: false,
@@ -27,7 +27,7 @@ export class AppLoaderPlugin
 
         /**
          * Loader instance to help with asset loading.
-         * @memberof PIXI.Application#
+         * @name PIXI.Application#loader
          * @type {PIXI.Loader}
          * @readonly
          */
@@ -36,7 +36,6 @@ export class AppLoaderPlugin
 
     /**
      * Called when application destroyed
-     *
      * @private
      */
     static destroy(): void

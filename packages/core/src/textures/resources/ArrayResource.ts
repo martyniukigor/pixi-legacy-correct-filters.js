@@ -11,18 +11,16 @@ import type { ISize } from '@pixi/math';
  * A resource that contains a number of sources.
  *
  * @class
- * @extends PIXI.Resource
- * @memberof PIXI
+ * @extends PIXI.resources.Resource
+ * @memberof PIXI.resources
+ * @param {number|Array<*>} source - Number of items in array or the collection
+ *        of image URLs to use. Can also be resources, image elements, canvas, etc.
+ * @param {object} [options] - Options to apply to {@link PIXI.resources.autoDetectResource}
+ * @param {number} [options.width] - Width of the resource
+ * @param {number} [options.height] - Height of the resource
  */
 export class ArrayResource extends AbstractMultiResource
 {
-    /**
-     * @param {number|Array<*>} source - Number of items in array or the collection
-     *        of image URLs to use. Can also be resources, image elements, canvas, etc.
-     * @param {object} [options] - Options to apply to {@link PIXI.autoDetectResource}
-     * @param {number} [options.width] - Width of the resource
-     * @param {number} [options.height] - Height of the resource
-     */
     constructor(source: number|Array<any>, options?: ISize)
     {
         const { width, height } = options || {};
@@ -53,7 +51,7 @@ export class ArrayResource extends AbstractMultiResource
      *
      * @param {PIXI.BaseTexture} baseTexture
      * @param {number} index - Zero-based index of resource to set
-     * @return {PIXI.ArrayResource} Instance for chaining
+     * @return {PIXI.resources.ArrayResource} Instance for chaining
      */
     addBaseTextureAt(baseTexture: BaseTexture, index: number): this
     {
@@ -98,13 +96,13 @@ export class ArrayResource extends AbstractMultiResource
             gl.texImage3D(
                 gl.TEXTURE_2D_ARRAY,
                 0,
-                glTexture.internalFormat,
+                texture.format,
                 this._width,
                 this._height,
                 length,
                 0,
                 texture.format,
-                glTexture.type,
+                texture.type,
                 null
             );
         }
@@ -128,7 +126,7 @@ export class ArrayResource extends AbstractMultiResource
                         item.resource.height,
                         1,
                         texture.format,
-                        glTexture.type,
+                        texture.type,
                         (item.resource as BaseImageResource).source
                     );
                 }

@@ -1,5 +1,11 @@
 {
   "lerna": "3.8.5",
-  "useWorkspaces": true,
-  "version": "6.1.0"
+  "packages": [
+    "bundles/*",
+    "packages/*",
+    "packages/canvas/*",
+    "packages/filters/*",
+    "tools/*"
+  ],
+  "version": "5.3.10"
 }

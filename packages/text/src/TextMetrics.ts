@@ -34,7 +34,6 @@ export class TextMetrics
     public static METRICS_STRING: string;
     public static BASELINE_SYMBOL: string;
     public static BASELINE_MULTIPLIER: number;
-    public static HEIGHT_MULTIPLIER: number;
 
     // TODO: These should be protected but they're initialized outside of the class.
     public static _canvas: HTMLCanvasElement|OffscreenCanvas;
@@ -130,7 +129,7 @@ export class TextMetrics
      * @param {HTMLCanvasElement} [canvas] - optional specification of the canvas to use for measuring.
      * @return {PIXI.TextMetrics} measured width and height of the text.
      */
-    public static measureText(text: string, style: TextStyle, wordWrap?: boolean, canvas = TextMetrics._canvas): TextMetrics
+    public static measureText(text: string, style: TextStyle, wordWrap: boolean, canvas = TextMetrics._canvas): TextMetrics
     {
         wordWrap = (wordWrap === undefined || wordWrap === null) ? style.wordWrap : wordWrap;
         const font = style.toFontString();
@@ -503,15 +502,11 @@ export class TextMetrics
     /**
      * Determines if char is a breaking whitespace.
      *
-     * It allows one to determine whether char should be a breaking whitespace
-     * For example certain characters in CJK langs or numbers.
-     * It must return a boolean.
-     *
-     * @param  {string}  char     - The character
-     * @param  {string}  [nextChar] - The next character
+     * @private
+     * @param  {string}  char - The character
      * @return {boolean}  True if whitespace, False otherwise.
      */
-    static isBreakingSpace(char: string, _nextChar?: string): boolean
+    private static isBreakingSpace(char: string): boolean
     {
         if (typeof char !== 'string')
         {
@@ -541,9 +536,8 @@ export class TextMetrics
         for (let i = 0; i < text.length; i++)
         {
             const char = text[i];
-            const nextChar = text[i + 1];
 
-            if (TextMetrics.isBreakingSpace(char, nextChar) || TextMetrics.isNewline(char))
+            if (TextMetrics.isBreakingSpace(char) || TextMetrics.isNewline(char))
             {
                 if (token !== '')
                 {
@@ -652,7 +646,7 @@ export class TextMetrics
         const metricsString = TextMetrics.METRICS_STRING + TextMetrics.BASELINE_SYMBOL;
         const width = Math.ceil(context.measureText(metricsString).width);
         let baseline = Math.ceil(context.measureText(TextMetrics.BASELINE_SYMBOL).width);
-        const height = Math.ceil(TextMetrics.HEIGHT_MULTIPLIER * baseline);
+        const height = 2 * baseline;
 
         baseline = baseline * TextMetrics.BASELINE_MULTIPLIER | 0;
 
@@ -847,17 +841,6 @@ TextMetrics.BASELINE_SYMBOL = 'M';
 TextMetrics.BASELINE_MULTIPLIER = 1.4;
 
 /**
- * Height multiplier for setting height of canvas to calculate font metrics.
- *
- * @static
- * @memberof PIXI.TextMetrics
- * @name HEIGHT_MULTIPLIER
- * @type {number}
- * @default 2.00
- */
-TextMetrics.HEIGHT_MULTIPLIER = 2.0;
-
-/**
  * Cache of new line chars.
  *
  * @memberof PIXI.TextMetrics
@@ -897,7 +880,7 @@ TextMetrics._breakingSpaces = [
  * A number, or a string containing a number.
  *
  * @memberof PIXI
- * @typedef {object} IFontMetrics
+ * @typedef IFontMetrics
  * @property {number} ascent - Font ascent
  * @property {number} descent - Font descent
  * @property {number} fontSize - Font size

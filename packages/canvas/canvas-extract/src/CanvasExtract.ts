@@ -2,6 +2,7 @@ import { RenderTexture } from '@pixi/core';
 import { CanvasRenderTarget } from '@pixi/utils';
 import { Rectangle } from '@pixi/math';
 import { CanvasRenderer } from '@pixi/canvas-renderer';
+import { deprecation } from '@pixi/utils';
 import type { DisplayObject } from '@pixi/display';
 import type { BaseRenderTexture } from '@pixi/core';
 
@@ -17,11 +18,10 @@ const TEMP_RECT = new Rectangle();
  */
 export class CanvasExtract
 {
-    /** A reference to the current renderer */
     public renderer: CanvasRenderer;
 
     /**
-     * @param renderer - A reference to the current renderer
+     * @param {PIXI.CanvasRenderer} renderer - A reference to the current renderer
      */
     constructor(renderer: CanvasRenderer)
     {
@@ -31,13 +31,13 @@ export class CanvasExtract
     /**
      * Will return a HTML Image of the target
      *
-     * @param target - A displayObject or renderTexture
+     * @param {PIXI.DisplayObject|PIXI.RenderTexture} target - A displayObject or renderTexture
      *  to convert. If left empty will use the main renderer
-     * @param format - Image format, e.g. "image/jpeg" or "image/webp".
-     * @param quality - JPEG or Webp compression from 0 to 1. Default is 0.92.
-     * @return HTML Image of the target
+     * @param {string} [format] - Image format, e.g. "image/jpeg" or "image/webp".
+     * @param {number} [quality] - JPEG or Webp compression from 0 to 1. Default is 0.92.
+     * @return {HTMLImageElement} HTML Image of the target
      */
-    public image(target?: DisplayObject|RenderTexture, format?: string, quality?: number): HTMLImageElement
+    public image(target: DisplayObject|RenderTexture, format?: string, quality?: number): HTMLImageElement
     {
         const image = new Image();
 
@@ -50,13 +50,13 @@ export class CanvasExtract
      * Will return a a base64 encoded string of this target. It works by calling
      *  `CanvasExtract.getCanvas` and then running toDataURL on that.
      *
-     * @param target - A displayObject or renderTexture
+     * @param {PIXI.DisplayObject|PIXI.RenderTexture} target - A displayObject or renderTexture
      *  to convert. If left empty will use the main renderer
-     * @param format - Image format, e.g. "image/jpeg" or "image/webp".
-     * @param quality - JPEG or Webp compression from 0 to 1. Default is 0.92.
-     * @return A base64 encoded string of the texture.
+     * @param {string} [format] - Image format, e.g. "image/jpeg" or "image/webp".
+     * @param {number} [quality] - JPEG or Webp compression from 0 to 1. Default is 0.92.
+     * @return {string} A base64 encoded string of the texture.
      */
-    public base64(target?: DisplayObject|RenderTexture, format?: string, quality?: number): string
+    public base64(target: DisplayObject|RenderTexture, format?: string, quality?: number): string
     {
         return this.canvas(target).toDataURL(format, quality);
     }
@@ -64,11 +64,11 @@ export class CanvasExtract
     /**
      * Creates a Canvas element, renders this target to it and then returns it.
      *
-     * @param target - A displayObject or renderTexture
+     * @param {PIXI.DisplayObject|PIXI.RenderTexture} target - A displayObject or renderTexture
      *  to convert. If left empty will use the main renderer
-     * @return A Canvas element with the texture rendered on.
+     * @return {HTMLCanvasElement} A Canvas element with the texture rendered on.
      */
-    public canvas(target?: DisplayObject|RenderTexture): HTMLCanvasElement
+    public canvas(target: DisplayObject|RenderTexture): HTMLCanvasElement
     {
         const renderer = this.renderer;
         let context;
@@ -119,11 +119,11 @@ export class CanvasExtract
      * Will return a one-dimensional array containing the pixel data of the entire texture in RGBA
      * order, with integer values between 0 and 255 (included).
      *
-     * @param target - A displayObject or renderTexture
+     * @param {PIXI.DisplayObject|PIXI.RenderTexture} target - A displayObject or renderTexture
      *  to convert. If left empty will use the main renderer
-     * @return One-dimensional array containing the pixel data of the entire texture
+     * @return {Uint8ClampedArray} One-dimensional array containing the pixel data of the entire texture
      */
-    public pixels(target?: DisplayObject|RenderTexture): Uint8ClampedArray
+    public pixels(target: DisplayObject|RenderTexture): Uint8ClampedArray
     {
         const renderer = this.renderer;
         let context;
@@ -152,23 +152,39 @@ export class CanvasExtract
         else
         {
             context = renderer.rootContext;
-            resolution = renderer.resolution;
+
             frame = TEMP_RECT;
             frame.width = renderer.width;
             frame.height = renderer.height;
         }
 
-        const x = frame.x * resolution;
-        const y = frame.y * resolution;
-        const width = frame.width * resolution;
-        const height = frame.height * resolution;
-
-        return context.getImageData(x, y, width, height).data;
+        return context.getImageData(0, 0, frame.width * resolution, frame.height * resolution).data;
     }
 
-    /** Destroys the extract */
+    /**
+     * Destroys the extract
+     *
+     */
     public destroy(): void
     {
         this.renderer = null;
     }
 }
+
+/**
+ * @name PIXI.CanvasRenderer#extract
+ * @type {PIXI.CanvasExtract}
+ * @see PIXI.CanvasRenderer#plugins
+ * @deprecated since 5.3.0
+ */
+Object.defineProperty(CanvasRenderer.prototype, 'extract',
+    {
+        get()
+        {
+            deprecation('v5.3.0', 'CanvasRenderer#extract is deprecated, use CanvasRenderer#plugins.extract');
+
+            return this.plugins.extract;
+        },
+    }
+);
+

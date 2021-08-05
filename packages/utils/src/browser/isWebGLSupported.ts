@@ -22,7 +22,7 @@ export function isWebGLSupported(): boolean
 
             try
             {
-                if (!self.WebGLRenderingContext)
+                if (!window.WebGLRenderingContext)
                 {
                     return false;
                 }

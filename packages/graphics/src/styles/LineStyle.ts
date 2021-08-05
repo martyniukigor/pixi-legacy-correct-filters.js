@@ -9,13 +9,28 @@ import { LINE_JOIN, LINE_CAP } from '../const';
  */
 export class LineStyle extends FillStyle
 {
-    /** The width (thickness) of any lines drawn. */
+    /**
+     * The width (thickness) of any lines drawn.
+     *
+     * @member {number}
+     * @default 0
+     */
     public width = 0;
 
-    /** The alignment of any lines drawn (0.5 = middle, 1 = outer, 0 = inner). WebGL only. */
+    /**
+     * The alignment of any lines drawn (0.5 = middle, 1 = outer, 0 = inner).
+     *
+     * @member {number}
+     * @default 0.5
+     */
     public alignment = 0.5;
 
-    /** If true the lines will be draw using LINES instead of TRIANGLE_STRIP */
+    /**
+     * If true the lines will be draw using LINES instead of TRIANGLE_STRIP
+     *
+     * @member {boolean}
+     * @default false
+     */
     public native = false;
 
     /**
@@ -34,7 +49,12 @@ export class LineStyle extends FillStyle
      */
     public join = LINE_JOIN.MITER;
 
-    /** Miter limit. */
+    /**
+     * Miter limit.
+     *
+     * @member {number}
+     * @default 10
+     */
     public miterLimit = 10;
 
     /**

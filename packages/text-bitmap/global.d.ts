@@ -5,7 +5,7 @@ declare namespace GlobalMixins
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface LoaderResource extends Partial<IBitmapFontResource>
+    interface ILoaderResource extends Partial<IBitmapFontResource>
     {
 
     }

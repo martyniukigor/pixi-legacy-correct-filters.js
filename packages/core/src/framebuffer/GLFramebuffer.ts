@@ -17,7 +17,6 @@ export class GLFramebuffer
     dirtyId: number;
     dirtyFormat: number;
     dirtySize: number;
-    mipLevel: number;
 
     constructor(framebuffer: WebGLTexture)
     {
@@ -36,19 +35,19 @@ export class GLFramebuffer
          * @member {number}
          * @protected
          */
-        this.dirtyId = -1;
+        this.dirtyId = 0;
         /**
          * latest known version of framebuffer format
          * @member {number}
          * @protected
          */
-        this.dirtyFormat = -1;
+        this.dirtyFormat = 0;
         /**
          * latest known version of framebuffer size
          * @member {number}
          * @protected
          */
-        this.dirtySize = -1;
+        this.dirtySize = 0;
 
         /**
          * Detected AA samples number
@@ -68,10 +67,5 @@ export class GLFramebuffer
          * @member {PIXI.Framebuffer}
          */
         this.blitFramebuffer = null;
-
-        /**
-         * store the current mipmap of the textures the framebuffer will write too.
-         */
-        this.mipLevel = 0;
     }
 }

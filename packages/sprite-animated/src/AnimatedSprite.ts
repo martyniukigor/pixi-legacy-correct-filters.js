@@ -41,9 +41,9 @@ export class AnimatedSprite extends Sprite
     public animationSpeed: number;
     public loop: boolean;
     public updateAnchor: boolean;
-    public onComplete?: () => void;
-    public onFrameChange?: (currentFrame: number) => void;
-    public onLoop?: () => void;
+    public onComplete: () => void;
+    public onFrameChange: (currentFrame: number) => void;
+    public onLoop: () => void;
 
     private _playing: boolean;
     private _textures: Texture[];
@@ -376,7 +376,7 @@ export class AnimatedSprite extends Sprite
      * @param {boolean} [options.texture=false] - Should it destroy the current texture of the sprite as well.
      * @param {boolean} [options.baseTexture=false] - Should it destroy the base texture of the sprite as well.
      */
-    public destroy(options?: IDestroyOptions|boolean): void
+    public destroy(options: IDestroyOptions|boolean): void
     {
         this.stop();
         super.destroy(options);
@@ -440,7 +440,7 @@ export class AnimatedSprite extends Sprite
     /**
      * The array of textures used for this AnimatedSprite.
      *
-     * @member {PIXI.Texture[]}
+     * @member {PIXI.Texture[]|PIXI.AnimatedSprite.FrameObject[]}
      */
     get textures(): Texture[]|FrameObject[]
     {

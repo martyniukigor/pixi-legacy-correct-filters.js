@@ -6,10 +6,7 @@ import { FORMATS, MIPMAP_MODES, SCALE_MODES, TYPES, MSAA_QUALITY } from '@pixi/c
 import type { GLFramebuffer } from './GLFramebuffer';
 
 /**
- * A framebuffer can be used to render contents off of the screen. {@link PIXI.BaseRenderTexture} uses
- * one internally to render into itself. You can attach a depth or stencil buffer to a framebuffer.
- *
- * On WebGL 2 machines, shaders can output to multiple textures simultaneously with GLSL 300 ES.
+ * Frame buffer used by the BaseRenderTexture
  *
  * @class
  * @memberof PIXI
@@ -19,7 +16,6 @@ export class Framebuffer
     public width: number;
     public height: number;
     public multisample: MSAA_QUALITY;
-
     stencil: boolean;
     depth: boolean;
     dirtyId: number;
@@ -29,7 +25,6 @@ export class Framebuffer
     colorTextures: Array<BaseTexture>;
     glFramebuffers: {[key: string]: GLFramebuffer};
     disposeRunner: Runner;
-
     /**
      * @param {number} width - Width of the frame buffer
      * @param {number} height - Height of the frame buffer
@@ -40,13 +35,12 @@ export class Framebuffer
          * Width of framebuffer in pixels
          * @member {number}
          */
-        this.width = Math.round(width || 100);
-
+        this.width = Math.ceil(width || 100);
         /**
          * Height of framebuffer in pixels
          * @member {number}
          */
-        this.height = Math.round(height || 100);
+        this.height = Math.ceil(height || 100);
 
         this.stencil = false;
         this.depth = false;
@@ -72,7 +66,7 @@ export class Framebuffer
          *```js
          * renderTexture.framebuffer.multisample = PIXI.MSAA_QUALITY.HIGH;
          * //...
-         * renderer.render(myContainer, {renderTexture});
+         * renderer.render(renderTexture, myContainer);
          * renderer.framebuffer.blit(); // copies data from MSAA framebuffer to texture
          *  ```
          *
@@ -174,8 +168,8 @@ export class Framebuffer
      */
     resize(width: number, height: number): void
     {
-        width = Math.round(width);
-        height = Math.round(height);
+        width = Math.ceil(width);
+        height = Math.ceil(height);
 
         if (width === this.width && height === this.height) return;
 
@@ -190,7 +184,7 @@ export class Framebuffer
             const texture = this.colorTextures[i];
             const resolution = texture.resolution;
 
-            // take into account the fact the texture may have a different resolution..
+            // take into acount the fact the texture may have a different resolution..
             texture.setSize(width / resolution, height / resolution);
         }
 

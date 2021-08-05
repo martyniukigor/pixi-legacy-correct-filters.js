@@ -4,7 +4,7 @@ import { generateBlurVertSource } from './generateBlurVertSource';
 import { generateBlurFragSource } from './generateBlurFragSource';
 import { CLEAR_MODES } from '@pixi/constants';
 
-import type { FilterSystem, RenderTexture } from '@pixi/core';
+import type { RenderTexture, systems } from '@pixi/core';
 
 /**
  * The BlurFilterPass applies a horizontal or vertical Gaussian blur to an object.
@@ -54,13 +54,13 @@ export class BlurFilterPass extends Filter
     /**
      * Applies the filter.
      *
-     * @param {PIXI.FilterSystem} filterManager - The manager.
+     * @param {PIXI.systems.FilterSystem} filterManager - The manager.
      * @param {PIXI.RenderTexture} input - The input target.
      * @param {PIXI.RenderTexture} output - The output target.
      * @param {PIXI.CLEAR_MODES} clearMode - How to clear
      */
     public apply(
-        filterManager: FilterSystem, input: RenderTexture, output: RenderTexture, clearMode: CLEAR_MODES
+        filterManager: systems.FilterSystem, input: RenderTexture, output: RenderTexture, clearMode: CLEAR_MODES
     ): void
     {
         if (output)
@@ -144,7 +144,7 @@ export class BlurFilterPass extends Filter
 
     /**
      * Sets the quality of the blur by modifying the number of passes. More passes means higher
-     * quality bluring but the lower the performance.
+     * quaility bluring but the lower the performance.
      *
      * @member {number}
      * @default 4

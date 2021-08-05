@@ -1,10 +1,10 @@
+import { System } from '../System';
 import { Rectangle } from '@pixi/math';
 import { ENV, BUFFER_BITS, MSAA_QUALITY } from '@pixi/constants';
 import { settings } from '../settings';
 import { Framebuffer } from './Framebuffer';
 import { GLFramebuffer } from './GLFramebuffer';
 
-import type { ISystem } from '../ISystem';
 import type { Renderer } from '../Renderer';
 import type { IRenderingContext } from '../IRenderingContext';
 
@@ -15,9 +15,9 @@ const tempRectangle = new Rectangle();
  *
  * @class
  * @extends PIXI.System
- * @memberof PIXI
+ * @memberof PIXI.systems
  */
-export class FramebufferSystem implements ISystem
+export class FramebufferSystem extends System
 {
     public readonly managedFramebuffers: Array<Framebuffer>;
     public current: Framebuffer;
@@ -28,14 +28,13 @@ export class FramebufferSystem implements ISystem
     protected gl: IRenderingContext;
     protected unknownFramebuffer: Framebuffer;
     protected msaaSamples: Array<number>;
-    public renderer: Renderer;
 
     /**
      * @param {PIXI.Renderer} renderer - The renderer this System works for.
      */
     constructor(renderer: Renderer)
     {
-        this.renderer = renderer;
+        super(renderer);
 
         /**
          * A list of managed framebuffers
@@ -112,11 +111,10 @@ export class FramebufferSystem implements ISystem
     /**
      * Bind a framebuffer
      *
-     * @param {PIXI.Framebuffer} [framebuffer]
-     * @param {PIXI.Rectangle} [frame] - frame, default is framebuffer size
-     * @param {number} [mipLevel] - optional mip level to set on the framebuffer - defaults to 0
+     * @param {PIXI.Framebuffer} framebuffer
+     * @param {PIXI.Rectangle} [frame] frame, default is framebuffer size
      */
-    bind(framebuffer?: Framebuffer, frame?: Rectangle, mipLevel = 0): void
+    bind(framebuffer?: Framebuffer, frame?: Rectangle): void
     {
         const { gl } = this;
 
@@ -133,13 +131,6 @@ export class FramebufferSystem implements ISystem
             }
             // make sure all textures are unbound..
 
-            if (fbo.mipLevel !== mipLevel)
-            {
-                framebuffer.dirtyId++;
-                framebuffer.dirtyFormat++;
-                fbo.mipLevel = mipLevel;
-            }
-
             // now check for updates...
             if (fbo.dirtyId !== framebuffer.dirtyId)
             {
@@ -148,8 +139,7 @@ export class FramebufferSystem implements ISystem
                 if (fbo.dirtyFormat !== framebuffer.dirtyFormat)
                 {
                     fbo.dirtyFormat = framebuffer.dirtyFormat;
-                    fbo.dirtySize = framebuffer.dirtySize;
-                    this.updateFramebuffer(framebuffer, mipLevel);
+                    this.updateFramebuffer(framebuffer);
                 }
                 else if (fbo.dirtySize !== framebuffer.dirtySize)
                 {
@@ -172,24 +162,11 @@ export class FramebufferSystem implements ISystem
 
             if (frame)
             {
-                const mipWidth = (frame.width >> mipLevel);
-                const mipHeight = (frame.height >> mipLevel);
-
-                const scale = mipWidth / frame.width;
-
-                this.setViewport(
-                    frame.x * scale,
-                    frame.y * scale,
-                    mipWidth,
-                    mipHeight
-                );
+                this.setViewport(frame.x, frame.y, frame.width, frame.height);
             }
             else
             {
-                const mipWidth = (framebuffer.width >> mipLevel);
-                const mipHeight = (framebuffer.height >> mipLevel);
-
-                this.setViewport(0, 0, mipWidth, mipHeight);
+                this.setViewport(0, 0, framebuffer.width, framebuffer.height);
             }
         }
         else
@@ -222,11 +199,6 @@ export class FramebufferSystem implements ISystem
     setViewport(x: number, y: number, width: number, height: number): void
     {
         const v = this.viewport;
-
-        x = Math.round(x);
-        y = Math.round(y);
-        width = Math.round(width);
-        height = Math.round(height);
 
         if (v.width !== width || v.height !== height || v.x !== x || v.y !== y)
         {
@@ -308,46 +280,20 @@ export class FramebufferSystem implements ISystem
 
         const fbo = framebuffer.glFramebuffers[this.CONTEXT_UID];
 
-        if (fbo.msaaBuffer)
-        {
-            gl.bindRenderbuffer(gl.RENDERBUFFER, fbo.msaaBuffer);
-            gl.renderbufferStorageMultisample(gl.RENDERBUFFER, fbo.multisample,
-                gl.RGBA8, framebuffer.width, framebuffer.height);
-        }
-
         if (fbo.stencil)
         {
             gl.bindRenderbuffer(gl.RENDERBUFFER, fbo.stencil);
-
-            if (fbo.msaaBuffer)
-            {
-                gl.renderbufferStorageMultisample(gl.RENDERBUFFER, fbo.multisample,
-                    gl.DEPTH24_STENCIL8, framebuffer.width, framebuffer.height);
-            }
-            else
-            {
-                gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, framebuffer.width, framebuffer.height);
-            }
+            gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, framebuffer.width, framebuffer.height);
         }
 
         const colorTextures = framebuffer.colorTextures;
 
-        let count = colorTextures.length;
-
-        if (!gl.drawBuffers)
+        for (let i = 0; i < colorTextures.length; i++)
         {
-            count = Math.min(count, 1);
+            this.renderer.texture.bind(colorTextures[i], 0);
         }
 
-        for (let i = 0; i < count; i++)
-        {
-            const texture = colorTextures[i];
-            const parentTexture = texture.parentTextureArray || texture;
-
-            this.renderer.texture.bind(parentTexture, 0);
-        }
-
-        if (framebuffer.depthTexture && this.writeDepthTexture)
+        if (framebuffer.depthTexture)
         {
             this.renderer.texture.bind(framebuffer.depthTexture, 0);
         }
@@ -358,9 +304,8 @@ export class FramebufferSystem implements ISystem
      *
      * @protected
      * @param {PIXI.Framebuffer} framebuffer
-     * @param {number} mipLevel
      */
-    updateFramebuffer(framebuffer: Framebuffer, mipLevel: number): void
+    updateFramebuffer(framebuffer: Framebuffer): void
     {
         const { gl } = this;
 
@@ -376,39 +321,34 @@ export class FramebufferSystem implements ISystem
             count = Math.min(count, 1);
         }
 
-        if (fbo.multisample > 1 && this.canMultisampleFramebuffer(framebuffer))
+        if (fbo.multisample > 1)
         {
-            fbo.msaaBuffer = fbo.msaaBuffer || gl.createRenderbuffer();
+            fbo.msaaBuffer = gl.createRenderbuffer();
             gl.bindRenderbuffer(gl.RENDERBUFFER, fbo.msaaBuffer);
             gl.renderbufferStorageMultisample(gl.RENDERBUFFER, fbo.multisample,
                 gl.RGBA8, framebuffer.width, framebuffer.height);
             gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, fbo.msaaBuffer);
-        }
-        else if (fbo.msaaBuffer)
-        {
-            gl.deleteRenderbuffer(fbo.msaaBuffer);
-            fbo.msaaBuffer = null;
         }
 
         const activeTextures = [];
 
         for (let i = 0; i < count; i++)
         {
-            const texture = colorTextures[i];
-            const parentTexture = texture.parentTextureArray || texture;
-
-            this.renderer.texture.bind(parentTexture, 0);
-
-            if (i === 0 && fbo.msaaBuffer)
+            if (i === 0 && fbo.multisample > 1)
             {
                 continue;
             }
+
+            const texture = framebuffer.colorTextures[i];
+            const parentTexture = texture.parentTextureArray || texture;
+
+            this.renderer.texture.bind(parentTexture, 0);
 
             gl.framebufferTexture2D(gl.FRAMEBUFFER,
                 gl.COLOR_ATTACHMENT0 + i,
                 texture.target,
                 parentTexture._glTextures[this.CONTEXT_UID].texture,
-                mipLevel);
+                0);
 
             activeTextures.push(gl.COLOR_ATTACHMENT0 + i);
         }
@@ -432,45 +372,23 @@ export class FramebufferSystem implements ISystem
                     gl.DEPTH_ATTACHMENT,
                     gl.TEXTURE_2D,
                     depthTexture._glTextures[this.CONTEXT_UID].texture,
-                    mipLevel);
+                    0);
             }
         }
 
-        if ((framebuffer.stencil || framebuffer.depth) && !(framebuffer.depthTexture && this.writeDepthTexture))
+        if (!fbo.stencil && (framebuffer.stencil || framebuffer.depth))
         {
-            fbo.stencil = fbo.stencil || gl.createRenderbuffer();
+            fbo.stencil = gl.createRenderbuffer();
 
             gl.bindRenderbuffer(gl.RENDERBUFFER, fbo.stencil);
 
-            if (fbo.msaaBuffer)
-            {
-                gl.renderbufferStorageMultisample(gl.RENDERBUFFER, fbo.multisample,
-                    gl.DEPTH24_STENCIL8, framebuffer.width, framebuffer.height);
+            gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, framebuffer.width, framebuffer.height);
+            // TODO.. this is depth AND stencil?
+            if (!framebuffer.depthTexture)
+            { // you can't have both, so one should take priority if enabled
+                gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, fbo.stencil);
             }
-            else
-            {
-                gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, framebuffer.width, framebuffer.height);
-            }
-
-            gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, fbo.stencil);
         }
-        else if (fbo.stencil)
-        {
-            gl.deleteRenderbuffer(fbo.stencil);
-            fbo.stencil = null;
-        }
-    }
-
-    /**
-     * Returns true if the frame buffer can be multisampled
-     *
-     * @protected
-     * @param {PIXI.Framebuffer} framebuffer
-     */
-    protected canMultisampleFramebuffer(framebuffer: Framebuffer): boolean
-    {
-        return this.renderer.context.webGLVersion !== 1
-            && framebuffer.colorTextures.length <= 1 && !framebuffer.depthTexture;
     }
 
     /**
@@ -538,7 +456,7 @@ export class FramebufferSystem implements ISystem
         }
         if (!framebuffer)
         {
-            if (!fbo.msaaBuffer)
+            if (fbo.multisample <= 1)
             {
                 return;
             }
@@ -603,11 +521,6 @@ export class FramebufferSystem implements ISystem
         {
             gl.deleteFramebuffer(fbo.framebuffer);
 
-            if (fbo.msaaBuffer)
-            {
-                gl.deleteRenderbuffer(fbo.msaaBuffer);
-            }
-
             if (fbo.stencil)
             {
                 gl.deleteRenderbuffer(fbo.stencil);
@@ -654,8 +567,7 @@ export class FramebufferSystem implements ISystem
         {
             return;
         }
-
-        framebuffer.stencil = true;
+        framebuffer.enableStencil();
 
         const w = framebuffer.width;
         const h = framebuffer.height;
@@ -663,15 +575,7 @@ export class FramebufferSystem implements ISystem
         const stencil = gl.createRenderbuffer();
 
         gl.bindRenderbuffer(gl.RENDERBUFFER, stencil);
-
-        if (fbo.msaaBuffer)
-        {
-            gl.renderbufferStorageMultisample(gl.RENDERBUFFER, fbo.multisample, gl.DEPTH24_STENCIL8, w, h);
-        }
-        else
-        {
-            gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, w, h);
-        }
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, w, h);
 
         fbo.stencil = stencil;
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, stencil);
@@ -686,13 +590,5 @@ export class FramebufferSystem implements ISystem
     {
         this.current = this.unknownFramebuffer;
         this.viewport = new Rectangle();
-    }
-
-    /**
-     * @ignore
-     */
-    destroy(): void
-    {
-        this.renderer = null;
     }
 }

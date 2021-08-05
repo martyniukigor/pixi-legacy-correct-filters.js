@@ -1,7 +1,7 @@
+import { System } from '../System';
 import { GC_MODES } from '@pixi/constants';
 import { settings } from '@pixi/settings';
 
-import type { ISystem } from '../ISystem';
 import type { Renderer } from '../Renderer';
 import type { Texture } from './Texture';
 import type { RenderTexture } from '../renderTexture/RenderTexture';
@@ -16,24 +16,22 @@ export interface IUnloadableTexture {
  * ensuring that it does not get clogged up with textures that are no longer being used.
  *
  * @class
- * @memberof PIXI
+ * @memberof PIXI.systems
  * @extends PIXI.System
  */
-export class TextureGCSystem implements ISystem
+export class TextureGCSystem extends System
 {
     public count: number;
     public checkCount: number;
     public maxIdle: number;
     public checkCountMax: number;
-    public mode: GC_MODES;
-    private renderer: Renderer;
-
+    public mode: number;
     /**
      * @param {PIXI.Renderer} renderer - The renderer this System works for.
      */
     constructor(renderer: Renderer)
     {
-        this.renderer = renderer;
+        super(renderer);
 
         /**
          * Count
@@ -64,7 +62,7 @@ export class TextureGCSystem implements ISystem
         this.checkCountMax = settings.GC_MAX_CHECK_COUNT;
 
         /**
-         * Current garbage collection mode
+         * Current garabage collection mode
          * @member {PIXI.GC_MODES}
          * @see PIXI.settings.GC_MODE
          */
@@ -158,13 +156,5 @@ export class TextureGCSystem implements ISystem
         {
             this.unload(displayObject.children[i]);
         }
-    }
-
-    /**
-     * @ignore
-     */
-    destroy(): void
-    {
-        this.renderer = null;
     }
 }

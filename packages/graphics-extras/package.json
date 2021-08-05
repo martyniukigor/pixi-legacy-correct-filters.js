@@ -1,9 +1,9 @@
 {
   "name": "@pixi/graphics-extras",
-  "version": "6.1.0",
-  "main": "dist/cjs/graphics-extras.js",
-  "module": "dist/esm/graphics-extras.js",
-  "bundle": "dist/browser/graphics-extras.js",
+  "version": "5.3.10",
+  "main": "lib/graphics-extras.js",
+  "module": "lib/graphics-extras.es.js",
+  "bundle": "dist/graphics-extras.js",
   "bundleNoExports": true,
   "description": "Additional Graphics functions for drawing special shapes.",
   "author": "Matt Karl <matt@mattkarl.com>",
@@ -19,11 +19,9 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ],
-  "peerDependencies": {
-    "@pixi/graphics": "6.1.0",
-    "@pixi/math": "6.1.0"
+  "dependencies": {
+    "@pixi/graphics": "5.3.10"
   }
 }

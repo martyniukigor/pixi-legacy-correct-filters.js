@@ -1,4 +1,4 @@
-import { getBufferType } from '@pixi/utils';
+import { getBufferType } from './getBufferType';
 
 import type { ITypedArray } from '../Buffer';
 import type { Dict } from '@pixi/utils';

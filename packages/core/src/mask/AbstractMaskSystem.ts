@@ -1,26 +1,25 @@
-import type { ISystem } from '../ISystem';
+import { System } from '../System';
+
 import type { MaskData } from './MaskData';
 import type { Renderer } from '../Renderer';
 
 /**
- * System plugin to the renderer to manage specific types of masking operations.
+ * System plugin to the renderer to manage masks of certain type
  *
  * @class
  * @extends PIXI.System
- * @memberof PIXI
+ * @memberof PIXI.systems
  */
-export class AbstractMaskSystem implements ISystem
+export class AbstractMaskSystem extends System
 {
     protected maskStack: Array<MaskData>;
     protected glConst: number;
-    protected renderer: Renderer;
-
     /**
      * @param {PIXI.Renderer} renderer - The renderer this System works for.
      */
     constructor(renderer: Renderer)
     {
-        this.renderer = renderer;
+        super(renderer);
 
         /**
          * The mask stack
@@ -88,7 +87,8 @@ export class AbstractMaskSystem implements ISystem
      */
     destroy(): void
     {
-        this.renderer = null;
+        super.destroy();
+
         this.maskStack = null;
     }
 }

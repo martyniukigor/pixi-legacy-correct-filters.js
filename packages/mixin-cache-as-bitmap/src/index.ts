@@ -4,15 +4,12 @@ import { Container, DisplayObject, IDestroyOptions } from '@pixi/display';
 import { IPointData, Matrix, Rectangle } from '@pixi/math';
 import { uid } from '@pixi/utils';
 import { settings } from '@pixi/settings';
-import { MSAA_QUALITY } from '@pixi/constants';
-import type { CanvasRenderer } from '@pixi/canvas-renderer';
+import { CanvasRenderer } from '@pixi/canvas-renderer';
 
 const _tempMatrix = new Matrix();
 
 DisplayObject.prototype._cacheAsBitmap = false;
 DisplayObject.prototype._cacheData = null;
-DisplayObject.prototype._cacheAsBitmapResolution = null;
-DisplayObject.prototype._cacheAsBitmapMultisample = MSAA_QUALITY.NONE;
 
 // figured there's no point adding ALL the extra variables to prototype.
 // this model can hold the information needed. This can also be generated on demand as
@@ -20,7 +17,6 @@ DisplayObject.prototype._cacheAsBitmapMultisample = MSAA_QUALITY.NONE;
 /**
  * @class
  * @ignore
- * @private
  */
 export class CacheData
 {
@@ -55,71 +51,6 @@ export class CacheData
 }
 
 Object.defineProperties(DisplayObject.prototype, {
-    /**
-     * The resolution to use for cacheAsBitmap. By default this will use the renderer's resolution
-     * but can be overriden for performance. Lower values will reduce memory usage at the expense
-     * of render quality. A falsey value of `null` or `0` will default to the renderer's resolution.
-     * If `cacheAsBitmap` is set to `true`, this will re-render with the new resolution.
-     *
-     * @member {number} cacheAsBitmapResolution
-     * @memberof PIXI.DisplayObject#
-     * @default null
-     */
-    cacheAsBitmapResolution: {
-        get(): number
-        {
-            return this._cacheAsBitmapResolution;
-        },
-        set(resolution: number): void
-        {
-            if (resolution === this._cacheAsBitmapResolution)
-            {
-                return;
-            }
-
-            this._cacheAsBitmapResolution = resolution;
-
-            if (this.cacheAsBitmap)
-            {
-                // Toggle to re-render at the new resolution
-                this.cacheAsBitmap = false;
-                this.cacheAsBitmap = true;
-            }
-        },
-    },
-
-    /**
-     * The number of samples to use for cacheAsBitmap. If set to `null`, the renderer's
-     * sample count is used.
-     * If `cacheAsBitmap` is set to `true`, this will re-render with the new number of samples.
-     *
-     * @member {number} cacheAsBitmapMultisample
-     * @memberof PIXI.DisplayObject#
-     * @default PIXI.MSAA_QUALITY.NONE
-     */
-    cacheAsBitmapMultisample: {
-        get(): MSAA_QUALITY
-        {
-            return this._cacheAsBitmapMultisample;
-        },
-        set(multisample: MSAA_QUALITY): void
-        {
-            if (multisample === this._cacheAsBitmapMultisample)
-            {
-                return;
-            }
-
-            this._cacheAsBitmapMultisample = multisample;
-
-            if (this.cacheAsBitmap)
-            {
-                // Toggle to re-render with new multisample
-                this.cacheAsBitmap = false;
-                this.cacheAsBitmap = true;
-            }
-        },
-    },
-
     /**
      * Set this to true if you want this display object to be cached as a bitmap.
      * This basically takes a snap shot of the display object as it is at that moment. It can
@@ -206,7 +137,7 @@ Object.defineProperties(DisplayObject.prototype, {
  * Renders a cached version of the sprite with WebGL
  *
  * @private
- * @method _renderCached
+ * @function _renderCached
  * @memberof PIXI.DisplayObject#
  * @param {PIXI.Renderer} renderer - the WebGL renderer
  */
@@ -228,7 +159,7 @@ DisplayObject.prototype._renderCached = function _renderCached(renderer: Rendere
  * Prepares the WebGL renderer to cache the sprite
  *
  * @private
- * @method _initCachedDisplayObject
+ * @function _initCachedDisplayObject
  * @memberof PIXI.DisplayObject#
  * @param {PIXI.Renderer} renderer - the WebGL renderer
  */
@@ -275,12 +206,7 @@ DisplayObject.prototype._initCachedDisplayObject = function _initCachedDisplayOb
     // const stack = renderer.filterManager.filterStack;
 
     // this renderTexture will be used to store the cached DisplayObject
-    const renderTexture = RenderTexture.create({
-        width: bounds.width,
-        height: bounds.height,
-        resolution: this.cacheAsBitmapResolution || renderer.resolution,
-        multisample: this.cacheAsBitmapMultisample ?? renderer.multisample,
-    });
+    const renderTexture = RenderTexture.create({ width: bounds.width, height: bounds.height });
 
     const textureCacheId = `cacheAsBitmap_${uid()}`;
 
@@ -295,8 +221,7 @@ DisplayObject.prototype._initCachedDisplayObject = function _initCachedDisplayOb
     // set all properties to there original so we can render to a texture
     this.render = this._cacheData.originalRender;
 
-    renderer.render(this, { renderTexture, clear: true, transform: m, skipUpdateTransform: false });
-    renderer.framebuffer.blit();
+    renderer.render(this, renderTexture, true, m, false);
 
     // now restore the state be setting the new properties
     renderer.projection.transform = cachedProjectionTransform;
@@ -312,7 +237,6 @@ DisplayObject.prototype._initCachedDisplayObject = function _initCachedDisplayOb
 
     this._mask = null;
     this.filterArea = null;
-    this.alpha = cacheAlpha;
 
     // create our cached sprite
     const cachedSprite = new Sprite(renderTexture);
@@ -346,7 +270,7 @@ DisplayObject.prototype._initCachedDisplayObject = function _initCachedDisplayOb
  * Renders a cached version of the sprite with canvas
  *
  * @private
- * @method _renderCachedCanvas
+ * @function _renderCachedCanvas
  * @memberof PIXI.DisplayObject#
  * @param {PIXI.CanvasRenderer} renderer - The canvas renderer
  */
@@ -368,7 +292,7 @@ DisplayObject.prototype._renderCachedCanvas = function _renderCachedCanvas(rende
  * Prepares the Canvas renderer to cache the sprite
  *
  * @private
- * @method _initCachedDisplayObjectCanvas
+ * @function _initCachedDisplayObjectCanvas
  * @memberof PIXI.DisplayObject#
  * @param {PIXI.CanvasRenderer} renderer - The canvas renderer
  */
@@ -415,7 +339,7 @@ DisplayObject.prototype._initCachedDisplayObjectCanvas = function _initCachedDis
     // set all properties to there original so we can render to a texture
     this.renderCanvas = this._cacheData.originalRenderCanvas;
 
-    renderer.render(this, { renderTexture, clear: true, transform: m, skipUpdateTransform: false });
+    renderer.render(this, renderTexture, true, m, false);
     // now restore the state be setting the new properties
     renderer.context = cachedRenderTarget;
     (renderer as any)._projTransform = cachedProjectionTransform;
@@ -428,7 +352,6 @@ DisplayObject.prototype._initCachedDisplayObjectCanvas = function _initCachedDis
 
     this._mask = null;
     this.filterArea = null;
-    this.alpha = cacheAlpha;
 
     // create our cached sprite
     const cachedSprite = new Sprite(renderTexture);
@@ -462,7 +385,6 @@ DisplayObject.prototype._initCachedDisplayObjectCanvas = function _initCachedDis
  * Calculates the bounds of the cached sprite
  *
  * @private
- * @method
  */
 DisplayObject.prototype._calculateCachedBounds = function _calculateCachedBounds(): void
 {
@@ -476,7 +398,6 @@ DisplayObject.prototype._calculateCachedBounds = function _calculateCachedBounds
  * Gets the bounds of the cached sprite.
  *
  * @private
- * @method
  * @return {Rectangle} The local bounds.
  */
 DisplayObject.prototype._getCachedLocalBounds = function _getCachedLocalBounds(): Rectangle
@@ -488,7 +409,6 @@ DisplayObject.prototype._getCachedLocalBounds = function _getCachedLocalBounds()
  * Destroys the cached sprite.
  *
  * @private
- * @method
  */
 DisplayObject.prototype._destroyCachedDisplayObject = function _destroyCachedDisplayObject(): void
 {
@@ -505,12 +425,11 @@ DisplayObject.prototype._destroyCachedDisplayObject = function _destroyCachedDis
  * Destroys the cached object.
  *
  * @private
- * @method
  * @param {object|boolean} [options] - Options parameter. A boolean will act as if all options
  *  have been set to that value.
  *  Used when destroying containers, see the Container.destroy method.
  */
-DisplayObject.prototype._cacheAsBitmapDestroy = function _cacheAsBitmapDestroy(options?: IDestroyOptions|boolean): void
+DisplayObject.prototype._cacheAsBitmapDestroy = function _cacheAsBitmapDestroy(options: IDestroyOptions|boolean): void
 {
     this.cacheAsBitmap = false;
     this.destroy(options);

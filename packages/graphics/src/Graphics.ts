@@ -10,14 +10,15 @@ import {
     SHAPES,
 } from '@pixi/math';
 
-import { Texture, UniformGroup, State, Renderer, BatchDrawCall, Shader } from '@pixi/core';
-import { BezierUtils, QuadraticUtils, ArcUtils } from './utils';
-import { hex2rgb } from '@pixi/utils';
+import { Texture, UniformGroup, State, Renderer, BatchDrawCall } from '@pixi/core';
+import { BezierUtils, QuadraticUtils, ArcUtils, Star } from './utils';
+import { hex2rgb, deprecation } from '@pixi/utils';
 import { GraphicsGeometry } from './GraphicsGeometry';
 import { FillStyle } from './styles/FillStyle';
 import { LineStyle } from './styles/LineStyle';
 import { BLEND_MODES } from '@pixi/constants';
 import { Container } from '@pixi/display';
+import { Shader } from '@pixi/core';
 
 import type { IShape, IPointData } from '@pixi/math';
 import type { IDestroyOptions } from '@pixi/display';
@@ -62,21 +63,13 @@ const DEFAULT_SHADERS: {[key: string]: Shader} = {};
 export interface Graphics extends GlobalMixins.Graphics, Container {}
 
 /**
- * The Graphics class is primarily used to render primitive shapes such as lines, circles and
- * rectangles to the display, and to color and fill them.  However, you can also use a Graphics
- * object to build a list of primitives to use as a mask, or as a complex hitArea.
+ * The Graphics class contains methods used to draw primitive shapes such as lines, circles and
+ * rectangles to the display, and to color and fill them.
  *
- * Please note that due to legacy naming conventions, the behavior of some functions in this class
- * can be confusing.  Each call to `drawRect()`, `drawPolygon()`, etc. actually stores that primitive
- * in the Geometry class's GraphicsGeometry object for later use in rendering or hit testing - the
- * functions do not directly draw anything to the screen.  Similarly, the `clear()` function doesn't
- * change the screen, it simply resets the list of primitives, which can be useful if you want to
- * rebuild the contents of an existing Graphics object.
- *
- * Once a GraphicsGeometry list is built, you can re-use it in other Geometry objects as
- * an optimization, by passing it into a new Geometry object's constructor.  Because of this
- * ability, it's important to call `destroy()` on Geometry objects once you are done with them, to
- * properly dereference each GraphicsGeometry and prevent memory leaks.
+ * Note that because Graphics can share a GraphicsGeometry with other instances,
+ * it is necessary to call `destroy()` to properly dereference the underlying
+ * GraphicsGeometry and avoid a memory leak. Alternatively, keep using the same
+ * Graphics instance and call `clear()` between redraws.
  *
  * @class
  * @extends PIXI.Container
@@ -91,76 +84,26 @@ export class Graphics extends Container
      * @private
      * @member {PIXI.Point}
      */
+
     static _TEMP_POINT = new Point();
 
-    /**
-     * Represents the vertex and fragment shaders that processes the geometry and runs on the GPU.
-     * Can be shared between multiple Graphics objects.
-     *
-     * @member {PIXI.Shader}
-     */
-    public shader: Shader = null;
+    public shader: Shader;
+    public pluginName: string;
 
-    /** Renderer plugin for batching */
-    public pluginName = 'batch';
+    protected currentPath: Polygon;
+    protected batches: Array<IGraphicsBatchElement>;
+    protected batchTint: number;
+    protected batchDirty: number;
+    protected vertexData: Float32Array;
 
-    /**
-     * Current path
-     *
-     * @member {PIXI.Polygon}
-     * @readonly
-     */
-    public currentPath: Polygon = null;
-
-    /**
-     * A collections of batches! These can be drawn by the renderer batch system.
-     *
-     * @member {PIXI.IGraphicsBatchElement[]}
-     */
-    protected batches: Array<IGraphicsBatchElement> = [];
-
-    /** Update dirty for limiting calculating tints for batches. */
-    protected batchTint = -1;
-
-    /** Update dirty for limiting calculating batches.*/
-    protected batchDirty = -1;
-
-    /** Copy of the object vertex data. */
-    protected vertexData: Float32Array = null;
-
-    /**
-     * Current fill style
-     *
-     * @member {PIXI.FillStyle}
-     */
-    protected _fillStyle: FillStyle = new FillStyle();
-
-    /**
-     * Current line style
-     *
-     * @member {PIXI.LineStyle}
-     */
-    protected _lineStyle: LineStyle = new LineStyle();
-
-    /**
-     * Current shape transform matrix.
-     *
-     * @member {PIXI.Matrix}
-     */
-    protected _matrix: Matrix = null;
-
-    /**  Current hole mode is enabled. */
-    protected _holeMode = false;
+    protected _fillStyle: FillStyle;
+    protected _lineStyle: LineStyle;
+    protected _matrix: Matrix;
+    protected _holeMode: boolean;
     protected _transformID: number;
     protected _tint: number;
 
-    /**
-     * Represents the WebGL state the Graphics required to render, excludes shader and geometry. E.g.,
-     * blend mode, culling, depth testing, direction of rendering triangles, backface, etc.
-     *
-     * @member {PIXI.State}
-     */
-    private state: State = State.for2d();
+    private state: State;
     private _geometry: GraphicsGeometry;
 
     /**
@@ -188,6 +131,63 @@ export class Graphics extends Container
         this._geometry.refCount++;
 
         /**
+         * Represents the vertex and fragment shaders that processes the geometry and runs on the GPU.
+         * Can be shared between multiple Graphics objects.
+         *
+         * @member {PIXI.Shader}
+         */
+        this.shader = null;
+
+        /**
+         * Represents the WebGL state the Graphics required to render, excludes shader and geometry. E.g.,
+         * blend mode, culling, depth testing, direction of rendering triangles, backface, etc.
+         *
+         * @member {PIXI.State}
+         */
+        this.state = State.for2d();
+
+        /**
+         * Current fill style
+         *
+         * @member {PIXI.FillStyle}
+         * @protected
+         */
+        this._fillStyle = new FillStyle();
+
+        /**
+         * Current line style
+         *
+         * @member {PIXI.LineStyle}
+         * @protected
+         */
+        this._lineStyle = new LineStyle();
+
+        /**
+         * Current shape transform matrix.
+         *
+         * @member {PIXI.Matrix}
+         * @protected
+         */
+        this._matrix = null;
+
+        /**
+         * Current hole mode is enabled.
+         *
+         * @member {boolean}
+         * @default false
+         * @protected
+         */
+        this._holeMode = false;
+
+        /**
+         * Current path
+         *
+         * @member {PIXI.Polygon}
+         * @protected
+         */
+        this.currentPath = null;
+
+        /**
          * When cacheAsBitmap is set to true the graphics object will be rendered as if it was a sprite.
          * This is useful if your graphics element does not change often, as it will speed up the rendering
          * of the object in exchange for taking up texture memory. It is also useful if you need the graphics
@@ -199,6 +199,48 @@ export class Graphics extends Container
          * @memberof PIXI.Graphics#
          * @default false
          */
+
+        /**
+         * A collections of batches! These can be drawn by the renderer batch system.
+         *
+         * @protected
+         * @member {object[]}
+         */
+        this.batches = [];
+
+        /**
+         * Update dirty for limiting calculating tints for batches.
+         *
+         * @protected
+         * @member {number}
+         * @default -1
+         */
+        this.batchTint = -1;
+
+        /**
+         * Update dirty for limiting calculating batches.
+         *
+         * @protected
+         * @member {number}
+         * @default -1
+         */
+        this.batchDirty = -1;
+
+        /**
+         * Copy of the object vertex data.
+         *
+         * @protected
+         * @member {Float32Array}
+         */
+        this.vertexData = null;
+
+        /**
+         * Renderer plugin for batching
+         *
+         * @member {string}
+         * @default 'batch'
+         */
+        this.pluginName = 'batch';
 
         this._transformID = -1;
 
@@ -222,10 +264,7 @@ export class Graphics extends Container
 
     /**
      * The blend mode to be applied to the graphic shape. Apply a value of
-     * `PIXI.BLEND_MODES.NORMAL` to reset the blend mode.  Note that, since each
-     * primitive in the GraphicsGeometry list is rendered sequentially, modes
-     * such as `PIXI.BLEND_MODES.ADD` and `PIXI.BLEND_MODES.MULTIPLY` will
-     * be applied per-primitive.
+     * `PIXI.BLEND_MODES.NORMAL` to reset the blend mode.
      *
      * @member {number}
      * @default PIXI.BLEND_MODES.NORMAL;
@@ -242,7 +281,7 @@ export class Graphics extends Container
     }
 
     /**
-     * The tint applied to each graphic shape. This is a hex value. A value of
+     * The tint applied to the graphic shape. This is a hex value. A value of
      * 0xFFFFFF will remove any tint effect.
      *
      * @member {number}
@@ -284,16 +323,14 @@ export class Graphics extends Container
      * Specifies the line style used for subsequent calls to Graphics methods such as the lineTo()
      * method or the drawCircle() method.
      *
+     * @method PIXI.Graphics#lineStyle
      * @param {number} [width=0] - width of the line to draw, will update the objects stored style
      * @param {number} [color=0x0] - color of the line to draw, will update the objects stored style
      * @param {number} [alpha=1] - alpha of the line to draw, will update the objects stored style
-     * @param {number} [alignment=0.5] - alignment of the line to draw, (0 = inner, 0.5 = middle, 1 = outer).
-     *        WebGL only.
+     * @param {number} [alignment=0.5] - alignment of the line to draw, (0 = inner, 0.5 = middle, 1 = outter)
      * @param {boolean} [native=false] - If true the lines will be draw using LINES instead of TRIANGLE_STRIP
      * @return {PIXI.Graphics} This Graphics object. Good for chaining method calls
      */
-    public lineStyle(width: number, color?: number, alpha?: number, alignment?: number, native?: boolean): this;
-
     /**
      * Specifies the line style used for subsequent calls to Graphics methods such as the lineTo()
      * method or the drawCircle() method.
@@ -302,23 +339,28 @@ export class Graphics extends Container
      * @param {number} [options.width=0] - width of the line to draw, will update the objects stored style
      * @param {number} [options.color=0x0] - color of the line to draw, will update the objects stored style
      * @param {number} [options.alpha=1] - alpha of the line to draw, will update the objects stored style
-     * @param {number} [options.alignment=0.5] - alignment of the line to draw, (0 = inner, 0.5 = middle, 1 = outer).
-     *        WebGL only.
+     * @param {number} [options.alignment=0.5] - alignment of the line to draw, (0 = inner, 0.5 = middle, 1 = outter)
      * @param {boolean} [options.native=false] - If true the lines will be draw using LINES instead of TRIANGLE_STRIP
      * @param {PIXI.LINE_CAP}[options.cap=PIXI.LINE_CAP.BUTT] - line cap style
      * @param {PIXI.LINE_JOIN}[options.join=PIXI.LINE_JOIN.MITER] - line join style
      * @param {number}[options.miterLimit=10] - miter limit ratio
      * @return {PIXI.Graphics} This Graphics object. Good for chaining method calls
      */
-    public lineStyle(options?: ILineStyleOptions): this;
-
-    public lineStyle(options: ILineStyleOptions | number = null,
-        color = 0x0, alpha = 1, alignment = 0.5, native = false): this
+    public lineStyle(options: ILineStyleOptions = null): this
     {
         // Support non-object params: (width, color, alpha, alignment, native)
         if (typeof options === 'number')
         {
-            options = { width: options, color, alpha, alignment, native } as ILineStyleOptions;
+            // eslint-disable-next-line
+            const args = arguments;
+
+            options = {
+                width: args[0] || 0,
+                color: args[1] || 0x0,
+                alpha: args[2] !== undefined ? args[2] : 1,
+                alignment: args[3] !== undefined ? args[3] : 0.5,
+                native: !!args[4],
+            };
         }
 
         return this.lineTextureStyle(options);
@@ -334,8 +376,7 @@ export class Graphics extends Container
      *  Default 0xFFFFFF if texture present.
      * @param {number} [options.alpha=1] - alpha of the line to draw, will update the objects stored style
      * @param {PIXI.Matrix} [options.matrix=null] - Texture matrix to transform texture
-     * @param {number} [options.alignment=0.5] - alignment of the line to draw, (0 = inner, 0.5 = middle, 1 = outer).
-     *        WebGL only.
+     * @param {number} [options.alignment=0.5] - alignment of the line to draw, (0 = inner, 0.5 = middle, 1 = outter)
      * @param {boolean} [options.native=false] - If true the lines will be draw using LINES instead of TRIANGLE_STRIP
      * @param {PIXI.LINE_CAP}[options.cap=PIXI.LINE_CAP.BUTT] - line cap style
      * @param {PIXI.LINE_JOIN}[options.join=PIXI.LINE_JOIN.MITER] - line join style
@@ -344,6 +385,21 @@ export class Graphics extends Container
      */
     public lineTextureStyle(options: ILineStyleOptions): this
     {
+        // backward compatibility with params: (width, texture,
+        // color, alpha, matrix, alignment, native)
+        if (typeof options === 'number')
+        {
+            deprecation('v5.2.0', 'Please use object-based options for Graphics#lineTextureStyle');
+
+            // eslint-disable-next-line
+            const [width, texture, color, alpha, matrix, alignment, native] = arguments as any;
+
+            options = { width, texture, color, alpha, matrix, alignment, native };
+
+            // Remove undefined keys
+            Object.keys(options).forEach((key) => (options as any)[key] === undefined && delete (options as any)[key]);
+        }
+
         // Apply defaults
         options = Object.assign({
             width: 0,
@@ -476,6 +532,7 @@ export class Graphics extends Container
     /**
      * Initialize the curve
      *
+     * @protected
      * @param {number} [x=0]
      * @param {number} [y=0]
      */
@@ -666,8 +723,22 @@ export class Graphics extends Container
      * @param {PIXI.Matrix} [options.matrix=null] - Transform matrix
      * @return {PIXI.Graphics} This Graphics object. Good for chaining method calls
      */
-    beginTextureFill(options?: IFillStyleOptions): this
+    beginTextureFill(options: IFillStyleOptions): this
     {
+        // backward compatibility with params: (texture, color, alpha, matrix)
+        if (options instanceof Texture)
+        {
+            deprecation('v5.2.0', 'Please use object-based options for Graphics#beginTextureFill');
+
+            // eslint-disable-next-line
+            const [texture, color, alpha, matrix] = arguments as any;
+
+            options = { texture, color, alpha, matrix };
+
+            // Remove undefined keys
+            Object.keys(options).forEach((key) => (options as any)[key] === undefined && delete (options as any)[key]);
+        }
+
         // Apply defaults
         options = Object.assign({
             texture: Texture.WHITE,
@@ -838,6 +909,22 @@ export class Graphics extends Container
     }
 
     /**
+     * Draw a star shape with an arbitrary number of points.
+     *
+     * @param {number} x - Center X position of the star
+     * @param {number} y - Center Y position of the star
+     * @param {number} points - The number of points of the star, must be > 1
+     * @param {number} radius - The outer radius of the star
+     * @param {number} [innerRadius] - The inner radius between points, default half `radius`
+     * @param {number} [rotation=0] - The rotation of the star in radians, where 0 is vertical
+     * @return {PIXI.Graphics} This Graphics object. Good for chaining method calls
+     */
+    public drawStar(x: number, y: number, points: number, radius: number, innerRadius: number, rotation = 0): this
+    {
+        return this.drawPolygon(new Star(x, y, points, radius, innerRadius, rotation) as Polygon);
+    }
+
+    /**
      * Clears the graphics that were drawn to this Graphics object, and resets fill and line style settings.
      *
      * @return {PIXI.Graphics} This Graphics object. Good for chaining method calls
@@ -868,13 +955,13 @@ export class Graphics extends Container
 
         return data.length === 1
             && data[0].shape.type === SHAPES.RECT
-            && !data[0].holes.length
             && !(data[0].lineStyle.visible && data[0].lineStyle.width);
     }
 
     /**
      * Renders the object using the WebGL renderer
      *
+     * @protected
      * @param {PIXI.Renderer} renderer - The renderer
      */
     protected _render(renderer: Renderer): void
@@ -906,7 +993,11 @@ export class Graphics extends Container
         }
     }
 
-    /** Populating batches for rendering. */
+    /**
+     * Populating batches for rendering
+     *
+     * @protected
+     */
     protected _populateBatches(): void
     {
         const geometry = this._geometry;
@@ -954,6 +1045,7 @@ export class Graphics extends Container
     /**
      * Renders the batches using the BathedRenderer plugin
      *
+     * @protected
      * @param {PIXI.Renderer} renderer - The renderer
      */
     protected _renderBatched(renderer: Renderer): void
@@ -981,6 +1073,7 @@ export class Graphics extends Container
     /**
      * Renders the graphics direct
      *
+     * @protected
      * @param {PIXI.Renderer} renderer - The renderer
      */
     protected _renderDirect(renderer: Renderer): void
@@ -1042,6 +1135,7 @@ export class Graphics extends Container
     /**
      * Resolves shader for direct rendering
      *
+     * @protected
      * @param {PIXI.Renderer} renderer - The renderer
      */
     protected _resolveDirectShader(renderer: Renderer): Shader
@@ -1082,7 +1176,11 @@ export class Graphics extends Container
         return shader;
     }
 
-    /** Retrieves the bounds of the graphic shape as a rectangle object. */
+    /**
+     * Retrieves the bounds of the graphic shape as a rectangle object
+     *
+     * @protected
+     */
     protected _calculateBounds(): void
     {
         this.finishPoly();
@@ -1113,7 +1211,10 @@ export class Graphics extends Container
         return this._geometry.containsPoint(Graphics._TEMP_POINT);
     }
 
-    /** Recalculate the tint by applying tint to batches using Graphics tint. */
+    /**
+     * Recalcuate the tint by applying tin to batches using Graphics tint.
+     * @protected
+     */
     protected calculateTints(): void
     {
         if (this.batchTint !== this.tint)
@@ -1144,7 +1245,8 @@ export class Graphics extends Container
 
     /**
      * If there's a transform update or a change to the shape of the
-     * geometry, recalculate the vertices.
+     * geometry, recaculate the vertices.
+     * @protected
      */
     protected calculateVertices(): void
     {
@@ -1193,9 +1295,6 @@ export class Graphics extends Container
         {
             // we don't need to add extra point in the end because buildLine will take care of that
             currentPath.closeStroke = true;
-            // ensure that the polygon is completed, and is available for hit detection
-            // (even if the graphics is not rendered yet)
-            this.finishPoly();
         }
 
         return this;
@@ -1254,7 +1353,7 @@ export class Graphics extends Container
      * @param {boolean} [options.baseTexture=false] - Only used for child Sprites if options.children is set to true
      *  Should it destroy the base texture of the child sprite
      */
-    public destroy(options?: IDestroyOptions|boolean): void
+    public destroy(options: IDestroyOptions|boolean): void
     {
         this._geometry.refCount--;
         if (this._geometry.refCount === 0)

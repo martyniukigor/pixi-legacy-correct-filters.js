@@ -28,12 +28,10 @@ lerna-debug.log
 node_modules
 docs
 coverage
-coverage.lcov
 .nyc_output
+lib
 dist
 bundles/*/*.d.ts
-out
-packages/**/index.d.ts
 
 # jetBrains IDE ignores
 .idea
@@ -41,6 +39,3 @@ packages/**/index.d.ts
 # VSCode ignores
 .vscode
 pixi.code-workspace
-
-# webdoc api
-dist/docs/pixi.api.json

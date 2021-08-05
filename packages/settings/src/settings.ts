@@ -1,16 +1,13 @@
 import { isMobile } from './utils/isMobile';
 import { maxRecommendedTextures } from './utils/maxRecommendedTextures';
 import { canUploadSameBuffer } from './utils/canUploadSameBuffer';
-import { GC_MODES, MIPMAP_MODES, MSAA_QUALITY, PRECISION, SCALE_MODES, WRAP_MODES } from '@pixi/constants';
-import type { ENV } from '@pixi/constants';
 
 export interface IRenderOptions {
     view: HTMLCanvasElement;
     antialias: boolean;
     autoDensity: boolean;
+    transparent: boolean;
     backgroundColor: number;
-    backgroundAlpha: number;
-    useContextAlpha: boolean | 'notMultiplied';
     clearBeforeRender: boolean;
     preserveDrawingBuffer: boolean;
     width: number;
@@ -19,21 +16,20 @@ export interface IRenderOptions {
 }
 
 export interface ISettings {
-    MIPMAP_TEXTURES: MIPMAP_MODES;
+    MIPMAP_TEXTURES: number;
     ANISOTROPIC_LEVEL: number;
     RESOLUTION: number;
     FILTER_RESOLUTION: number;
-    FILTER_MULTISAMPLE: MSAA_QUALITY;
     SPRITE_MAX_TEXTURES: number;
     SPRITE_BATCH_SIZE: number;
     RENDER_OPTIONS: IRenderOptions;
-    GC_MODE: GC_MODES;
+    GC_MODE: number;
     GC_MAX_IDLE: number;
     GC_MAX_CHECK_COUNT: number;
-    WRAP_MODE: WRAP_MODES;
-    SCALE_MODE: SCALE_MODES;
-    PRECISION_VERTEX: PRECISION;
-    PRECISION_FRAGMENT: PRECISION;
+    WRAP_MODE: number;
+    SCALE_MODE: number;
+    PRECISION_VERTEX: string;
+    PRECISION_FRAGMENT: string;
     CAN_UPLOAD_SAME_BUFFER: boolean;
     CREATE_IMAGE_BITMAP: boolean;
     ROUND_PIXELS: boolean;
@@ -41,7 +37,7 @@ export interface ISettings {
     FAIL_IF_MAJOR_PERFORMANCE_CAVEAT?: boolean;
     UPLOADS_PER_FRAME?: number;
     SORTABLE_CHILDREN?: boolean;
-    PREFER_ENV?: ENV;
+    PREFER_ENV?: number;
     STRICT_TEXTURE_CACHE?: boolean;
     MESH_CANVAS_PADDING?: number;
     TARGET_FPMS?: number;
@@ -71,7 +67,7 @@ export const settings: ISettings = {
      * @type {PIXI.MIPMAP_MODES}
      * @default PIXI.MIPMAP_MODES.POW2
      */
-    MIPMAP_TEXTURES: MIPMAP_MODES.POW2,
+    MIPMAP_TEXTURES: 1,
 
     /**
      * Default anisotropic filtering level of textures.
@@ -106,17 +102,6 @@ export const settings: ISettings = {
      * @default 1
      */
     FILTER_RESOLUTION: 1,
-
-    /**
-     * Default filter samples.
-     *
-     * @static
-     * @name FILTER_MULTISAMPLE
-     * @memberof PIXI.settings
-     * @type {PIXI.MSAA_QUALITY}
-     * @default PIXI.MSAA_QUALITY.NONE
-     */
-    FILTER_MULTISAMPLE: MSAA_QUALITY.NONE,
 
     /**
      * The maximum textures that this device supports.
@@ -154,11 +139,11 @@ export const settings: ISettings = {
      * @memberof PIXI.settings
      * @type {object}
      * @property {HTMLCanvasElement} view=null
+     * @property {number} resolution=1
      * @property {boolean} antialias=false
      * @property {boolean} autoDensity=false
-     * @property {boolean} useContextAlpha=true
+     * @property {boolean} transparent=false
      * @property {number} backgroundColor=0x000000
-     * @property {number} backgroundAlpha=1
      * @property {boolean} clearBeforeRender=true
      * @property {boolean} preserveDrawingBuffer=false
      * @property {number} width=800
@@ -169,9 +154,8 @@ export const settings: ISettings = {
         view: null,
         antialias: false,
         autoDensity: false,
+        transparent: false,
         backgroundColor: 0x000000,
-        backgroundAlpha: 1,
-        useContextAlpha: true,
         clearBeforeRender: true,
         preserveDrawingBuffer: false,
         width: 800,
@@ -188,7 +172,7 @@ export const settings: ISettings = {
      * @type {PIXI.GC_MODES}
      * @default PIXI.GC_MODES.AUTO
      */
-    GC_MODE: GC_MODES.AUTO,
+    GC_MODE: 0,
 
     /**
      * Default Garbage Collection max idle.
@@ -221,7 +205,7 @@ export const settings: ISettings = {
      * @type {PIXI.WRAP_MODES}
      * @default PIXI.WRAP_MODES.CLAMP
      */
-    WRAP_MODE: WRAP_MODES.CLAMP,
+    WRAP_MODE: 33071,
 
     /**
      * Default scale mode for textures.
@@ -232,7 +216,7 @@ export const settings: ISettings = {
      * @type {PIXI.SCALE_MODES}
      * @default PIXI.SCALE_MODES.LINEAR
      */
-    SCALE_MODE: SCALE_MODES.LINEAR,
+    SCALE_MODE: 1,
 
     /**
      * Default specify float precision in vertex shader.
@@ -243,7 +227,7 @@ export const settings: ISettings = {
      * @type {PIXI.PRECISION}
      * @default PIXI.PRECISION.HIGH
      */
-    PRECISION_VERTEX: PRECISION.HIGH,
+    PRECISION_VERTEX: 'highp',
 
     /**
      * Default specify float precision in fragment shader.
@@ -255,7 +239,7 @@ export const settings: ISettings = {
      * @type {PIXI.PRECISION}
      * @default PIXI.PRECISION.MEDIUM
      */
-    PRECISION_FRAGMENT: isMobile.apple.device ? PRECISION.HIGH : PRECISION.MEDIUM,
+    PRECISION_FRAGMENT: isMobile.apple.device ? 'highp' : 'mediump',
 
     /**
      * Can we upload the same buffer in a single frame?

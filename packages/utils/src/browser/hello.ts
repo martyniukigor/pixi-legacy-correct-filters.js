@@ -1,5 +1,5 @@
 let saidHello = false;
-const VERSION = '$_VERSION';
+const VERSION = '__VERSION__';
 
 /**
  * Skips the hello message of renderers that are created after this is run.
@@ -44,11 +44,11 @@ export function sayHello(type: string): void
             'color: #ff2424; background: #fff; padding:5px 0;',
         ];
 
-        self.console.log(...args);
+        window.console.log(...args);
     }
-    else if (self.console)
+    else if (window.console)
     {
-        self.console.log(`PixiJS ${VERSION} - ${type} - http://www.pixijs.com/`);
+        window.console.log(`PixiJS ${VERSION} - ${type} - http://www.pixijs.com/`);
     }
 
     saidHello = true;

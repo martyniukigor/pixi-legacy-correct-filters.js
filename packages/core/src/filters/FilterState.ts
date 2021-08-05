@@ -1,5 +1,4 @@
-import { Matrix, Rectangle } from '@pixi/math';
-import { MSAA_QUALITY } from '@pixi/constants';
+import { Rectangle } from '@pixi/math';
 
 import type { Filter } from './Filter';
 import type { IFilterTarget } from './IFilterTarget';
@@ -17,13 +16,9 @@ export class FilterState
     target: IFilterTarget;
     legacy: boolean;
     resolution: number;
-    multisample: MSAA_QUALITY;
     sourceFrame: Rectangle;
     destinationFrame: Rectangle;
-    bindingSourceFrame: Rectangle;
-    bindingDestinationFrame: Rectangle;
     filters: Array<Filter>;
-    transform: Matrix;
 
     constructor()
     {
@@ -53,14 +48,6 @@ export class FilterState
          */
         this.resolution = 1;
 
-        /**
-         * Number of samples
-         * @member {PIXI.MSAA_QUALITY}
-         * @default MSAA_QUALITY.NONE
-         * @private
-         */
-        this.multisample = MSAA_QUALITY.NONE;
-
         // next three fields are created only for root
         // re-assigned for everything else
 
@@ -79,30 +66,11 @@ export class FilterState
         this.destinationFrame = new Rectangle();
 
         /**
-         * Original render-target source frame
-         * @private
-         */
-        this.bindingSourceFrame = new Rectangle();
-
-        /**
-         * Original render-target destination frame
-         * @private
-         */
-        this.bindingDestinationFrame = new Rectangle();
-
-        /**
          * Collection of filters
          * @member {PIXI.Filter[]}
          * @private
          */
         this.filters = [];
-
-        /**
-         * Projection system transform saved by link.
-         * @member {PIXI.Matrix}
-         * @private
-         */
-        this.transform = null;
     }
 
     /**

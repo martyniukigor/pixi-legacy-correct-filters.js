@@ -1,9 +1,9 @@
 {
   "name": "@pixi/canvas-mesh",
-  "version": "6.1.0",
-  "main": "dist/cjs/canvas-mesh.js",
-  "module": "dist/esm/canvas-mesh.js",
-  "bundle": "dist/browser/canvas-mesh.js",
+  "version": "5.3.10",
+  "main": "lib/canvas-mesh.js",
+  "module": "lib/canvas-mesh.es.js",
+  "bundle": "dist/canvas-mesh.js",
   "description": "Canvas mixin for the mesh package",
   "author": "Mat Groves",
   "contributors": [
@@ -21,19 +21,17 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ],
-  "peerDependencies": {
-    "@pixi/canvas-display": "6.1.0",
-    "@pixi/canvas-renderer": "6.1.0",
-    "@pixi/constants": "6.1.0",
-    "@pixi/mesh": "6.1.0",
-    "@pixi/mesh-extras": "6.1.0",
-    "@pixi/settings": "6.1.0"
+  "dependencies": {
+    "@pixi/canvas-renderer": "5.3.10",
+    "@pixi/constants": "5.3.10",
+    "@pixi/mesh": "5.3.10",
+    "@pixi/mesh-extras": "5.3.10",
+    "@pixi/settings": "5.3.10"
   },
   "devDependencies": {
-    "@pixi/core": "6.1.0",
-    "@pixi/sprite": "6.1.0"
+    "@pixi/core": "5.3.10",
+    "@pixi/sprite": "5.3.10"
   }
 }

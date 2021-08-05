@@ -1,9 +1,9 @@
 {
   "name": "@pixi/canvas-extract",
-  "version": "6.1.0",
-  "main": "dist/cjs/canvas-extract.js",
-  "module": "dist/esm/canvas-extract.js",
-  "bundle": "dist/browser/canvas-extract.js",
+  "version": "5.3.10",
+  "main": "lib/canvas-extract.js",
+  "module": "lib/canvas-extract.es.js",
+  "bundle": "dist/canvas-extract.js",
   "description": "Canvas mixin for the extract package",
   "author": "Mat Groves",
   "contributors": [
@@ -21,14 +21,13 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ],
-  "peerDependencies": {
-    "@pixi/canvas-renderer": "6.1.0",
-    "@pixi/core": "6.1.0",
-    "@pixi/display": "6.1.0",
-    "@pixi/math": "6.1.0",
-    "@pixi/utils": "6.1.0"
+  "dependencies": {
+    "@pixi/canvas-renderer": "5.3.10",
+    "@pixi/core": "5.3.10",
+    "@pixi/display": "5.3.10",
+    "@pixi/math": "5.3.10",
+    "@pixi/utils": "5.3.10"
   }
 }

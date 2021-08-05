@@ -1,9 +1,9 @@
 {
   "name": "@pixi/prepare",
-  "version": "6.1.0",
-  "main": "dist/cjs/prepare.js",
-  "module": "dist/esm/prepare.js",
-  "bundle": "dist/browser/prepare.js",
+  "version": "5.3.10",
+  "main": "lib/prepare.js",
+  "module": "lib/prepare.es.js",
+  "bundle": "dist/prepare.js",
   "description": "Plugin to allow uploading textures to the GPU",
   "author": "Mat Groves",
   "contributors": [
@@ -21,15 +21,14 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ],
-  "peerDependencies": {
-    "@pixi/core": "6.1.0",
-    "@pixi/display": "6.1.0",
-    "@pixi/graphics": "6.1.0",
-    "@pixi/settings": "6.1.0",
-    "@pixi/text": "6.1.0",
-    "@pixi/ticker": "6.1.0"
+  "dependencies": {
+    "@pixi/core": "5.3.10",
+    "@pixi/display": "5.3.10",
+    "@pixi/graphics": "5.3.10",
+    "@pixi/settings": "5.3.10",
+    "@pixi/text": "5.3.10",
+    "@pixi/ticker": "5.3.10"
   }
 }

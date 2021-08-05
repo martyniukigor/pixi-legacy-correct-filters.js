@@ -22,11 +22,6 @@ import type { IDestroyOptions } from '@pixi/display';
  */
 export class SimplePlane extends Mesh
 {
-    /**
-     * The geometry is automatically updated when the texture size changes
-     */
-    public autoResize: boolean;
-
     protected _textureID: number;
 
     /**
@@ -43,7 +38,6 @@ export class SimplePlane extends Mesh
 
         // lets call the setter to ensure all necessary updates are performed
         this.texture = texture;
-        this.autoResize = true;
     }
 
     /**
@@ -55,14 +49,11 @@ export class SimplePlane extends Mesh
         this._textureID = this.shader.texture._updateID;
 
         const geometry: PlaneGeometry = this.geometry as any;
-        const { width, height } = this.shader.texture;
 
-        if (this.autoResize && (geometry.width !== width || geometry.height !== height))
-        {
-            geometry.width = this.shader.texture.width;
-            geometry.height = this.shader.texture.height;
-            geometry.build();
-        }
+        geometry.width = this.shader.texture.width;
+        geometry.height = this.shader.texture.height;
+
+        geometry.build();
     }
 
     set texture(value: Texture)
@@ -104,7 +95,7 @@ export class SimplePlane extends Mesh
         super._render(renderer);
     }
 
-    public destroy(options?: IDestroyOptions|boolean): void
+    public destroy(options: IDestroyOptions|boolean): void
     {
         this.shader.texture.off('update', this.textureUpdated, this);
         super.destroy(options);

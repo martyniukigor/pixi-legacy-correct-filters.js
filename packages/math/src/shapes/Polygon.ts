@@ -1,8 +1,8 @@
 import { SHAPES } from '../const';
-import type { IPointData } from '../IPointData';
+import type { IPoint } from '../IPoint';
 
 /**
- * A class to define a shape via user defined coordinates.
+ * A class to define a shape via user defined co-orinates.
  *
  * @class
  * @memberof PIXI
@@ -13,10 +13,10 @@ export class Polygon
     public closeStroke: boolean;
     public readonly type: SHAPES.POLY;
 
-    constructor(points: IPointData[]|number[]);
-    constructor(...points: IPointData[]|number[]);
+    constructor(points: IPoint[]|number[]);
+    constructor(...points: IPoint[]|number[]);
     /**
-     * @param {PIXI.IPointData[]|number[]} points - This can be an array of Points
+     * @param {PIXI.IPoint[]|number[]} points - This can be an array of Points
      *  that form the polygon, a flat array of numbers that will be interpreted as [x,y, x,y, ...], or
      *  the arguments passed can be all the points of the polygon e.g.
      *  `new PIXI.Polygon(new PIXI.Point(), new PIXI.Point(), ...)`, or the arguments passed can be flat
@@ -24,7 +24,7 @@ export class Polygon
      */
     constructor(...points: any[])
     {
-        let flat: IPointData[]|number[] = Array.isArray(points[0]) ? points[0] : points;
+        let flat: IPoint[]|number[] = Array.isArray(points[0]) ? points[0] : points;
 
         // if this is an array of points, convert it to a flat array of numbers
         if (typeof flat[0] !== 'number')
@@ -33,7 +33,7 @@ export class Polygon
 
             for (let i = 0, il = flat.length; i < il; i++)
             {
-                p.push((flat[i] as IPointData).x, (flat[i] as IPointData).y);
+                p.push((flat[i] as IPoint).x, (flat[i] as IPoint).y);
             }
 
             flat = p;
@@ -110,13 +110,4 @@ export class Polygon
 
         return inside;
     }
-
-    // #if _DEBUG
-    toString(): string
-    {
-        return `[@pixi/math:Polygon`
-            + `closeStroke=${this.closeStroke}`
-            + `points=${this.points.reduce((pointsDesc, currentPoint) => `${pointsDesc}, ${currentPoint}`, '')}]`;
-    }
-    // #endif
 }

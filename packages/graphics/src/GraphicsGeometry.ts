@@ -15,7 +15,6 @@ import {
     Texture,
 } from '@pixi/core';
 
-import { isPolygonClockwise } from './utils/isPolygonClockwise';
 import { DRAW_MODES, WRAP_MODES } from '@pixi/constants';
 import { SHAPES, Point, Matrix } from '@pixi/math';
 import { GraphicsData } from './GraphicsData';
@@ -26,8 +25,8 @@ import type { Circle, Ellipse, Polygon, Rectangle, RoundedRectangle, IPointData 
 import type { FillStyle } from './styles/FillStyle';
 import type { LineStyle } from './styles/LineStyle';
 
-/*
- * Complex shape type
+/**
+ * @description Complex shape type
  * @todo Move to Math shapes
  */
 type IShape = Circle | Ellipse | Polygon | Rectangle | RoundedRectangle;
@@ -51,88 +50,184 @@ export class GraphicsGeometry extends BatchGeometry
     /**
      * The maximum number of points to consider an object "batchable",
      * able to be batched by the renderer's batch system.
-\    */
+     *
+     * @memberof PIXI.GraphicsGeometry
+     * @static
+     * @member {number} BATCHABLE_SIZE
+     * @default 100
+     */
     public static BATCHABLE_SIZE = 100;
 
-    /**
-     * Minimal distance between points that are considered different.
-     * Affects line tesselation.
-     */
-    public closePointEps = 1e-4;
-
-    /** Padding to add to the bounds. */
-    public boundsPadding = 0;
+    public closePointEps: number;
+    public boundsPadding: number;
 
     uvsFloat32: Float32Array = null;
     indicesUint16: Uint16Array | Uint32Array = null;
-    batchable = false;
+    batchable: boolean;
+    points: Array<number>;
+    colors: Array<number>;
+    uvs: Array<number>;
+    indices: Array<number>;
+    textureIds: Array<number>;
+    graphicsData: Array<GraphicsData>;
+    drawCalls: Array<BatchDrawCall>;
+    batchDirty: number;
+    batches: Array<BatchPart>;
 
-    /** An array of points to draw, 2 numbers per point */
-    points: number[] = [];
+    protected dirty: number;
+    protected cacheDirty: number;
+    protected clearDirty: number;
+    protected shapeIndex: number;
+    protected _bounds: Bounds;
+    protected boundsDirty: number;
 
-    /** The collection of colors */
-    colors: number[] = [];
-
-    /** The UVs collection */
-    uvs: number[] = [];
-
-    /** The indices of the vertices */
-    indices: number[] = [];
-
-    /** Reference to the texture IDs. */
-    textureIds: number[] = [];
-
-    /**
-     * The collection of drawn shapes.
-     *
-     * @member {PIXI.GraphicsData[]}
-     */
-    graphicsData: Array<GraphicsData> = [];
-
-    /**
-     * List of current draw calls drived from the batches.
-     *
-     * @member {PIXI.BatchDrawCall[]}
-     */
-    drawCalls: Array<BatchDrawCall> = [];
-
-    /** Batches need to regenerated if the geometry is updated. */
-    batchDirty = -1;
-
-    /**
-     * Intermediate abstract format sent to batch system.
-     * Can be converted to drawCalls or to batchable objects.
-     *
-     * @member {PIXI.graphicsUtils.BatchPart[]}
-     */
-    batches: Array<BatchPart> = [];
-
-    /** Used to detect if the graphics object has changed. */
-    protected dirty = 0;
-
-    /** Used to check if the cache is dirty. */
-    protected cacheDirty = -1;
-
-    /** Used to detect if we cleared the graphicsData. */
-    protected clearDirty = 0;
-
-    /** Index of the last batched shape in the stack of calls. */
-    protected shapeIndex = 0;
-
-    /**
-     * Cached bounds.
-     *
-     * @member {PIXI.Bounds}
-     */
-    protected _bounds: Bounds = new Bounds();
-
-    /** The bounds dirty flag. */
-    protected boundsDirty = -1;
-
-    // eslint-disable-next-line @typescript-eslint/no-useless-constructor
     constructor()
     {
         super();
+
+        /**
+         * An array of points to draw, 2 numbers per point
+         *
+         * @member {number[]}
+         * @protected
+         */
+        this.points = [];
+
+        /**
+         * The collection of colors
+         *
+         * @member {number[]}
+         * @protected
+         */
+        this.colors = [];
+
+        /**
+         * The UVs collection
+         *
+         * @member {number[]}
+         * @protected
+         */
+        this.uvs = [];
+
+        /**
+         * The indices of the vertices
+         *
+         * @member {number[]}
+         * @protected
+         */
+        this.indices = [];
+
+        /**
+         * Reference to the texture IDs.
+         *
+         * @member {number[]}
+         * @protected
+         */
+        this.textureIds = [];
+
+        /**
+         * The collection of drawn shapes.
+         *
+         * @member {PIXI.GraphicsData[]}
+         * @protected
+         */
+        this.graphicsData = [];
+
+        /**
+         * Used to detect if the graphics object has changed.
+         *
+         * @member {number}
+         * @protected
+         */
+        this.dirty = 0;
+
+        /**
+         * Batches need to regenerated if the geometry is updated.
+         *
+         * @member {number}
+         * @protected
+         */
+        this.batchDirty = -1;
+
+        /**
+         * Used to check if the cache is dirty.
+         *
+         * @member {number}
+         * @protected
+         */
+        this.cacheDirty = -1;
+
+        /**
+         * Used to detect if we cleared the graphicsData.
+         *
+         * @member {number}
+         * @default 0
+         * @protected
+         */
+        this.clearDirty = 0;
+
+        /**
+         * List of current draw calls drived from the batches.
+         *
+         * @member {object[]}
+         * @protected
+         */
+        this.drawCalls = [];
+
+        /**
+         * Intermediate abstract format sent to batch system.
+         * Can be converted to drawCalls or to batchable objects.
+         *
+         * @member {PIXI.graphicsUtils.BatchPart[]}
+         * @protected
+         */
+        this.batches = [];
+
+        /**
+         * Index of the last batched shape in the stack of calls.
+         *
+         * @member {number}
+         * @protected
+         */
+        this.shapeIndex = 0;
+
+        /**
+         * Cached bounds.
+         *
+         * @member {PIXI.Bounds}
+         * @protected
+         */
+        this._bounds = new Bounds();
+
+        /**
+         * The bounds dirty flag.
+         *
+         * @member {number}
+         * @protected
+         */
+        this.boundsDirty = -1;
+
+        /**
+         * Padding to add to the bounds.
+         *
+         * @member {number}
+         * @default 0
+         */
+        this.boundsPadding = 0;
+
+        this.batchable = false;
+
+        this.indicesUint16 = null;
+
+        this.uvsFloat32 = null;
+
+        /**
+         * Minimal distance between points that are considered different.
+         * Affects line tesselation.
+         *
+         * @member {number}
+         */
+        this.closePointEps = 1e-4;
     }
 
     /**
@@ -352,7 +447,7 @@ export class GraphicsGeometry extends BatchGeometry
      * Generates intermediate batch data. Either gets converted to drawCalls
      * or used to convert to batch objects directly by the Graphics object.
      *
-     * @param {boolean} [allow32Indices] - Allow using 32-bit indices for preventing artifacts when more that 65535 vertices
+     * @param {boolean} [aloow32Indices] - Allow using 32-bit indices for preventings artefacts when more that 65535 vertices
      */
     updateBatches(allow32Indices?: boolean): void
     {
@@ -695,7 +790,7 @@ export class GraphicsGeometry extends BatchGeometry
 
                     nextTexture._batchEnabled = TICK;
                     nextTexture._batchLocation = textureCount;
-                    nextTexture.wrapMode = WRAP_MODES.REPEAT;
+                    nextTexture.wrapMode = 10497;
 
                     currentGroup.texArray.elements[currentGroup.texArray.count++] = nextTexture;
                     textureCount++;
@@ -845,14 +940,7 @@ export class GraphicsGeometry extends BatchGeometry
 
                 if (type === SHAPES.POLY)
                 {
-                    if (isPolygonClockwise(shape as Polygon))
-                    {
-                        lineWidth = lineWidth * (1 - alignment);
-                    }
-                    else
-                    {
-                        lineWidth = lineWidth * alignment;
-                    }
+                    lineWidth = lineWidth * (0.5 + Math.abs(0.5 - alignment));
                 }
                 else
                 {

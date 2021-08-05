@@ -1,9 +1,9 @@
 {
   "name": "@pixi/runner",
-  "version": "6.1.0",
-  "main": "dist/cjs/runner.js",
-  "module": "dist/esm/runner.js",
-  "bundle": "dist/browser/runner.js",
+  "version": "5.3.10",
+  "main": "lib/runner.js",
+  "module": "lib/runner.es.js",
+  "bundle": "dist/runner.js",
   "description": "A simple alternative to events and signals with an emphasis on performance.",
   "author": "Mat Groves",
   "contributors": [
@@ -36,7 +36,6 @@
   },
   "files": [
     "lib",
-    "dist",
-    "*.d.ts"
+    "dist"
   ]
 }

@@ -1,17 +1,17 @@
 import { Resource } from './Resource';
 
 import type { IImageResourceOptions } from './ImageResource';
-import type { ISize } from '@pixi/math';
-import type { ICubeResourceOptions } from './CubeResource';
-import type { ISVGResourceOptions } from './SVGResource';
-import type { IVideoResourceOptions } from './VideoResource';
+import type{ ISize } from '@pixi/math';
+import type{ ICubeResourceOptions } from './CubeResource';
+import type{ ISVGResourceOptions } from './SVGResource';
+import type{ IVideoResourceOptions } from './VideoResource';
 
-/*
+/**
  * Allow flexible options for resource plugins
  */
 export type IResourcePluginOptions = { [key: string]: any };
 
-/*
+/**
  * All allowable options for autoDetectResource
  */
 export type IAutoDetectOptions = ISize
@@ -23,19 +23,17 @@ export type IAutoDetectOptions = ISize
 
 /**
  * Shape of supported resource plugins
- *
- * @memberof PIXI
  */
-export interface IResourcePlugin<R, RO>
+export interface IResourcePlugin
 {
     test(source: unknown, extension: string): boolean;
-    new (source: any, options?: RO): R;
+    new (source: any, options?: any): Resource;
 }
 
 /**
- * Collection of installed resource types, class must extend {@link PIXI.Resource}.
+ * Collection of installed resource types, class must extend {@link PIXI.resources.Resource}.
  * @example
- * class CustomResource extends PIXI.Resource {
+ * class CustomResource extends PIXI.resources.Resource {
  *   // MUST have source, options constructor signature
  *   // for auto-detected resources to be created.
  *   constructor(source, options) {
@@ -51,14 +49,14 @@ export interface IResourcePlugin<R, RO>
  *   }
  * }
  * // Install the new resource type
- * PIXI.INSTALLED.push(CustomResource);
+ * PIXI.resources.INSTALLED.push(CustomResource);
  *
- * @memberof PIXI
- * @type {Array<PIXI.IResourcePlugin>}
+ * @name PIXI.resources.INSTALLED
+ * @type {Array<*>}
  * @static
  * @readonly
  */
-export const INSTALLED: Array<IResourcePlugin<any, any>> = [];
+export const INSTALLED: Array<IResourcePlugin> = [];
 
 /**
  * Create a resource element from a single source element. This
@@ -66,14 +64,13 @@ export const INSTALLED: Array<IResourcePlugin<any, any>> = [];
  * are auto-detectable must have a static `test` method and a constructor
  * with the arguments `(source, options?)`. Currently, the supported
  * resources for auto-detection include:
- *  - {@link PIXI.ImageResource}
- *  - {@link PIXI.CanvasResource}
- *  - {@link PIXI.VideoResource}
- *  - {@link PIXI.SVGResource}
- *  - {@link PIXI.BufferResource}
+ *  - {@link PIXI.resources.ImageResource}
+ *  - {@link PIXI.resources.CanvasResource}
+ *  - {@link PIXI.resources.VideoResource}
+ *  - {@link PIXI.resources.SVGResource}
+ *  - {@link PIXI.resources.BufferResource}
  * @static
- * @memberof PIXI
- * @function autoDetectResource
+ * @function PIXI.resources.autoDetectResource
  * @param {string|*} source - Resource source, this can be the URL to the resource,
  *        a typed-array (for BufferResource), HTMLVideoElement, SVG data-uri
  *        or any other resource that can be auto-detected. If not resource is
@@ -88,9 +85,9 @@ export const INSTALLED: Array<IResourcePlugin<any, any>> = [];
  * @param {boolean} [options.autoPlay=true] - Video option to start playing video immediately
  * @param {number} [options.updateFPS=0] - Video option to update how many times a second the
  *        texture should be updated from the video. Leave at 0 to update at every render
- * @return {PIXI.Resource} The created resource.
+ * @return {PIXI.resources.Resource} The created resource.
  */
-export function autoDetectResource<R extends Resource, RO>(source: unknown, options?: RO): R
+export function autoDetectResource(source: unknown, options?: IAutoDetectOptions): Resource
 {
     if (!source)
     {
@@ -112,7 +109,7 @@ export function autoDetectResource<R extends Resource, RO>(source: unknown, opti
 
     for (let i = INSTALLED.length - 1; i >= 0; --i)
     {
-        const ResourcePlugin = INSTALLED[i] as IResourcePlugin<R, RO>;
+        const ResourcePlugin = INSTALLED[i];
 
         if (ResourcePlugin.test && ResourcePlugin.test(source, extension))
         {

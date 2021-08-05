@@ -1,11 +1,9 @@
 import type { IPoint } from './IPoint';
 import type { IPointData } from './IPointData';
 
-export interface Point extends GlobalMixins.Point, IPoint {}
-
 /**
- * The Point object represents a location in a two-dimensional coordinate system, where `x` represents
- * the position on the horizontal axis and `y` represents the position on the vertical axis
+ * The Point object represents a location in a two-dimensional coordinate system, where x represents
+ * the horizontal axis and y represents the vertical axis.
  *
  * @class
  * @memberof PIXI
@@ -13,23 +11,32 @@ export interface Point extends GlobalMixins.Point, IPoint {}
  */
 export class Point implements IPoint
 {
-    /** Position of the point on the x axis */
-    public x = 0;
-    /** Position of the point on the y axis */
-    public y = 0;
+    public x: number;
+    public y: number;
 
-    /** Creates a new `Point`
+    /**
      * @param {number} [x=0] - position of the point on the x axis
      * @param {number} [y=0] - position of the point on the y axis
      */
     constructor(x = 0, y = 0)
     {
+        /**
+         * @member {number}
+         * @default 0
+         */
         this.x = x;
+
+        /**
+         * @member {number}
+         * @default 0
+         */
         this.y = y;
     }
 
-    /** Creates a clone of this point
-     * @returns A clone of this point
+    /**
+     * Creates a clone of this point
+     *
+     * @return {PIXI.Point} a copy of the point
      */
     clone(): Point
     {
@@ -37,10 +44,10 @@ export class Point implements IPoint
     }
 
     /**
-     * Copies `x` and `y` from the given point into this point
+     * Copies x and y from the given point
      *
-     * @param p - The point to copy from
-     * @returns The point instance itself
+     * @param {PIXI.IPointData} p - The point to copy from
+     * @returns {this} Returns itself.
      */
     copyFrom(p: IPointData): this
     {
@@ -50,10 +57,10 @@ export class Point implements IPoint
     }
 
     /**
-     * Copies this point's x and y into the given point (`p`).
+     * Copies x and y into the given point
      *
-     * @param p - The point to copy to. Can be any of type that is or extends `IPointData`
-     * @returns The point (`p`) with values updated
+     * @param {PIXI.IPoint} p - The point to copy.
+     * @returns {PIXI.IPoint} Given point with values updated
      */
     copyTo<T extends IPoint>(p: T): T
     {
@@ -63,10 +70,10 @@ export class Point implements IPoint
     }
 
     /**
-     * Accepts another point (`p`) and returns `true` if the given point is equal to this point
+     * Returns true if the given point is equal to this point
      *
-     * @param p - The point to check
-     * @returns Returns `true` if both `x` and `y` are equal
+     * @param {PIXI.IPointData} p - The point to check
+     * @returns {boolean} Whether the given point equal to this point
      */
     equals(p: IPointData): boolean
     {
@@ -74,12 +81,12 @@ export class Point implements IPoint
     }
 
     /**
-     * Sets the point to a new `x` and `y` position.
-     * If `y` is omitted, both `x` and `y` will be set to `x`.
+     * Sets the point to a new x and y position.
+     * If y is omitted, both x and y will be set to x.
      *
-     * @param {number} [x=0] - position of the point on the `x` axis
-     * @param {number} [y=x] - position of the point on the `y` axis
-     * @returns The point instance itself
+     * @param {number} [x=0] - position of the point on the x axis
+     * @param {number} [y=x] - position of the point on the y axis
+     * @returns {this} Returns itself.
      */
     set(x = 0, y = x): this
     {
@@ -88,11 +95,4 @@ export class Point implements IPoint
 
         return this;
     }
-
-    // #if _DEBUG
-    toString(): string
-    {
-        return `[@pixi/math:Point x=${this.x} y=${this.y}]`;
-    }
-    // #endif
 }
