@@ -4,6 +4,7 @@
   "description": "PixiJS AutoFitY plugin",
   "author": "Igor Martyniuk",
   "contributors": [
+    "Ivan Popelyshev <ivan.popelyshev@gmail.com>",
     "Igor Martyniuk <martinukigor@gmail.com>"
   ],
   "main": "./dist/pixi-autofit-y.js",
