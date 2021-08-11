@@ -8,9 +8,13 @@ This module will help you to solve this problem.
 
 Firstly you need to import this module.
 
-<code>import {applyFsMixins} from "pixi-autofit-y";</code>
+<code>import {applyFsMixins} from "pixi-autofit-y";
 
-Then initiate this function applyFsMixins();
+Then initiate this function:
+
+<code>
+
+applyFsMixins();
 
 // Creating some filter
 Filter = new PIXI.Filter(transition.vertex, transition.fragment, transition.uniform);
@@ -21,3 +25,5 @@ Filter.autoFitY = true;
 // Than you need to define your original video/image size
 Filter.autoFitWidth = 1920;
 Filter.autoFitHeight = 1080;
+
+</code>
