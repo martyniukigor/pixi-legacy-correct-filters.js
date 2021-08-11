@@ -8,22 +8,21 @@ This module will help you to solve this problem.
 
 Firstly you need to import this module.
 
-<code>import {applyFsMixins} from "pixi-autofit-y";
+<code>import {applyFsMixins} from "pixi-autofit-y";</code>
 
 Then initiate this function:
 
-<code>
+<code>applyFsMixins();</code>
 
-applyFsMixins();
+Creating some filter:
 
-// Creating some filter
-Filter = new PIXI.Filter(transition.vertex, transition.fragment, transition.uniform);
+<code>Filter = new PIXI.Filter(transition.vertex, transition.fragment, transition.uniform);</code>
 
-// Enable autoFit by height 
-Filter.autoFitY = true;
+Enable autoFit by height:
 
-// Than you need to define your original video/image size
-Filter.autoFitWidth = 1920;
-Filter.autoFitHeight = 1080;
+<code>Filter.autoFitY = true;</code>
 
-</code>
+Then you need to define your original video/image size:
+
+<code>Filter.autoFitWidth = 1920;</code>
+<code>Filter.autoFitHeight = 1080;</code>
